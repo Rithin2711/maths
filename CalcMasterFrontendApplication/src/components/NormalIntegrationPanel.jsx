@@ -18,7 +18,7 @@ function NormalIntegrationPanel({ onBack }) {
   const [lower, setLower] = useState("");
   const [upper, setUpper] = useState("");
   const [expr, setExpr] = useState("");
-  const [result, setResult] = useState({ latex: "", plaintext: "", error: "" });
+  const [result, setResult] = useState({ latex: "", plaintext: "", error: "", isIndefinite: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef();
 
@@ -66,7 +66,7 @@ function NormalIntegrationPanel({ onBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setResult({ latex: "", plaintext: "", error: "" });
+    setResult({ latex: "", plaintext: "", error: "", isIndefinite: false });
     try {
       // Validate the expression
       if (!expr.trim()) throw new Error("Please enter the integrand expression.");
@@ -82,6 +82,7 @@ function NormalIntegrationPanel({ onBack }) {
       // Check if both lower and upper are provided (definite), or neither (indefinite)
       let resultLatex = "";
       let resultRaw = "";
+      let isIndefinite = false;
       if ((lower.trim() && upper.trim())) {
         // Definite integral
         // Integrate and evaluate at bounds
@@ -94,22 +95,24 @@ function NormalIntegrationPanel({ onBack }) {
         const latexIntegral = nerdamer(`latex(integrate(${expr},${intVar}))`).toString();
         resultLatex = `\\int_{${lower}}^{${upper}} ${nerdamer(`latex(${expr})`)}\\,d${intVar} = ${numericResult}`;
         resultRaw = `Definite integral: ${numericResult}`;
+        isIndefinite = false;
       } else if (!lower.trim() && !upper.trim()) {
         // Indefinite integral
         const symIntegral = nerdamer(`integrate(${expr}, ${intVar})`).toString();
         const latexIntegral = nerdamer(`latex(integrate(${expr},${intVar}))`).toString();
-        resultLatex = `${latexIntegral} + C`;
+        resultLatex = `${latexIntegral}`;
         resultRaw = `Indefinite integral: ${symIntegral} + C`;
+        isIndefinite = true;
       } else {
         // One limit provided, the other blank: error
         throw new Error("Please provide both limits for definite integral, or leave both blank for indefinite integral.");
       }
-      setResult({ latex: resultLatex, plaintext: resultRaw, error: "" });
+      setResult({ latex: resultLatex, plaintext: resultRaw, error: "", isIndefinite });
     } catch (err) {
       let errorMsg = "";
       if (typeof err === "string") errorMsg = err;
       else errorMsg = err?.message ?? "Unknown error occurred while integrating.";
-      setResult({ latex: "", plaintext: "", error: errorMsg });
+      setResult({ latex: "", plaintext: "", error: errorMsg, isIndefinite: false });
     }
     setIsSubmitting(false);
   };
@@ -146,12 +149,20 @@ function NormalIntegrationPanel({ onBack }) {
           <h3 className="card-title fs-6 fw-bold mb-2">{result.error ? "Error" : "Result"}</h3>
           {/* LaTeX render */}
           {result.latex && (
-            <div className="mb-2" style={{ fontSize: "1.17rem" }}>
-              {/* Safely use KaTeX where available, else monospace fallback */}
-              <span>
-                {/* Lazy-load react-katex if possible; here we just innerHTML for the demo */}
-                <span style={{ fontFamily: "serif, math", color: "#27395a" }} dangerouslySetInnerHTML={{ __html: window.katex ? window.katex.renderToString(result.latex, { throwOnError: false }) : result.latex }} />
-              </span>
+            <div className="mb-2" style={{ fontSize: "1.17rem", display: "flex", alignItems: "center" }}>
+              {/* Safe KaTeX render */}
+              <span
+                style={{ fontFamily: "serif, math", color: "#27395a" }}
+                dangerouslySetInnerHTML={{
+                  __html: window.katex
+                    ? window.katex.renderToString(result.latex, { throwOnError: false })
+                    : result.latex
+                }}
+              />
+              {/* Show + C plainly, only for indefinite */}
+              {result.isIndefinite && (
+                <span style={{ marginLeft: 7, color: "#e87a41", fontWeight: 600, fontSize: "1.11em", fontFamily: "inherit" }}>+ C</span>
+              )}
             </div>
           )}
           {result.plaintext && !result.latex && (
