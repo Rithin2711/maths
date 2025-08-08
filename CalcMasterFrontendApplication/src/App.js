@@ -6,16 +6,20 @@ import OperationSelector from "./components/OperationSelector";
 import ValidationFeedback from "./components/ValidationFeedback";
 import ResultsPanel from "./components/ResultsPanel";
 import HomePage from "./components/HomePage";
+import IntegralOptionsPage from "./components/IntegralOptionsPage";
+import DifferentialOptionsPage from "./components/DifferentialOptionsPage";
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
 
 // PUBLIC_INTERFACE
 /**
  * Root application component, overhauled for user friendliness, onboarding, and accessibility.
- * Includes home screen with mode selection (Integral, Differential, Limits).
+ * Includes new selector screens for Integral and Differential, as well as home and main computation.
  */
 function App() {
   const [theme, setTheme] = useState("light");
   const [homeMode, setHomeMode] = useState(null); // "integral", "differential", "limits"
+  const [integralSubOption, setIntegralSubOption] = useState(null); // "normal", "area", "volume"
+  const [differentialSubOption, setDifferentialSubOption] = useState(null); // "normal", "tangent"
 
   // States for main math panel after operation selected
   const [mathExpr, setMathExpr] = useState("");
@@ -34,14 +38,20 @@ function App() {
     );
   };
 
-  // -- Start Panel Navigation Logic --
+  // -- Panel Navigation Logic --
   const handleHomeSelect = (mode) => {
     setHomeMode(mode);
-    // Preload correct operation string for compatibility with math engine
     setOperation(mode === "limits" ? "limit" : mode);
+    setIntegralSubOption(null);
+    setDifferentialSubOption(null);
   };
-
-  // -- End Panel Navigation Logic --
+  const handleIntegralOption = (opt) => setIntegralSubOption(opt);
+  const handleDifferentialOption = (opt) => setDifferentialSubOption(opt);
+  const handleBackFromSubSelector = () => {
+    setHomeMode(null);
+    setIntegralSubOption(null);
+    setDifferentialSubOption(null);
+  };
 
   // Keyboard shortcut for toggle help/examples (call ONLY ONCE, top-level)
   React.useEffect(() => {
@@ -57,7 +67,7 @@ function App() {
     // eslint-disable-next-line
   }, []);
 
-  // If on home page, show the HomePage component
+  // --- NAVIGATION SCREENS ---
   if (!homeMode) {
     return (
       <div className={`App bg-${theme}`}>
@@ -73,13 +83,56 @@ function App() {
       </div>
     );
   }
+  if (homeMode === "integral" && !integralSubOption) {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <IntegralOptionsPage
+          onSelectOption={handleIntegralOption}
+          onBack={handleBackFromSubSelector}
+        />
+      </div>
+    );
+  }
+  if (homeMode === "differential" && !differentialSubOption) {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <DifferentialOptionsPage
+          onSelectOption={handleDifferentialOption}
+          onBack={handleBackFromSubSelector}
+        />
+      </div>
+    );
+  }
 
-  // Panel logic for mode (mode-specific heading only for now, main UI appears afterward)
+  // --- MAIN PANEL LOGIC ---
+  // Mode-dependent heading
   const getModeHeading = () => {
     switch (homeMode) {
       case "integral":
+        if (integralSubOption === "area")
+          return <h2 className="fw-bold mb-4 text-success">Area of a Figure (Integral)</h2>;
+        if (integralSubOption === "volume")
+          return <h2 className="fw-bold mb-4 text-info">Volume by Integration</h2>;
         return <h2 className="fw-bold mb-4 text-primary">Integral Calculator</h2>;
       case "differential":
+        if (differentialSubOption === "tangent")
+          return <h2 className="fw-bold mb-4 text-secondary">Tangent at a Point (Differential)</h2>;
         return <h2 className="fw-bold mb-4 text-danger">Differential Calculator</h2>;
       case "limits":
         return <h2 className="fw-bold mb-4 text-success">Limit Calculator</h2>;
@@ -88,7 +141,7 @@ function App() {
     }
   };
 
-  // Handle math expression changes and operation, same as before
+  // Math logic
   const handleInputChange = (expr) => {
     setMathExpr(expr);
     const res = validateMathExpression(expr, operation);
@@ -102,8 +155,6 @@ function App() {
     setResult({ formatted: "", error: "", raw: "" });
     setShowExample(false);
   };
-
-  /** Submits the calculation on user action */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validation.valid) return;
@@ -129,7 +180,6 @@ function App() {
     if (el) el.focus();
   };
 
-  // Preload examples per operation
   const examples = {
     limit: "lim_{x\\to0} sin(x)/x",
     integral: "\\int x^2 dx",
@@ -137,7 +187,6 @@ function App() {
     trigonometric: "cos(3.14159)",
   };
 
-  // Public operation icons/descriptions
   const OP_ICONS = {
     limit: "🍀",
     integral: "∫",
@@ -151,7 +200,6 @@ function App() {
     trigonometric: "Evaluate sine, cosine, tangent, etc.",
   };
 
-  // Accessibility: App title & heading for screen readers
   return (
     <div className={`App bg-${theme}`} data-testid="main-app-container">
       <header className="container py-3 position-relative">
