@@ -167,6 +167,54 @@ function NormalIntegrationPanel({ onBack }) {
   // Result panel
   const renderResult = () => {
     if (!result.error && !result.latex && !result.plaintext) return null;
+
+    // Helper: Separate LaTeX and numeric value for definite integrals
+    let display = null;
+    if (result.latex && !result.isIndefinite && !result.error) {
+      // Try to split the latex into "integral", "=", and the numeric result.
+      // We constructed resultLatex as `\int_{a}^{b} ...\,dx = 2.5`
+      const eqMatch = result.latex.match(/^(.*?)(=)(.*)$/s);
+      let left = result.latex, eq = "", right = "";
+      if (eqMatch) {
+        left = eqMatch[1].trim();
+        eq = eqMatch[2];
+        right = eqMatch[3].trim();
+      }
+
+      display = (
+        <div style={{
+          display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "flex-start",
+          fontSize: "1.18rem", marginTop: 6, marginBottom: 6
+        }}>
+          {/* Integral LaTeX */}
+          <span
+            style={{ fontFamily: "serif, math", color: "#27395a", marginRight: 10 }}
+            dangerouslySetInnerHTML={{
+              __html: window.katex
+                ? window.katex.renderToString(left, { throwOnError: false, displayMode: true })
+                : left
+            }}
+          />
+          {/* Equals sign */}
+          <span style={{ fontSize: "1.26rem", fontWeight: 450, margin: "0 6px", color: "#59513a" }}>{eq}</span>
+          {/* Numeric result */}
+          <span
+            style={{
+              fontWeight: 700,
+              color: "#1b763a",
+              fontSize: "1.34rem",
+              fontFamily: "var(--bs-font-monospace, 'JetBrains Mono', monospace)",
+              background: "#f4ffec",
+              padding: "2.5px 10px",
+              borderRadius: 7,
+              boxShadow: "0 1.5px 5px 0 #d9f9e5a5"
+            }}
+            data-testid="definite-integral-result"
+          >{right}</span>
+        </div>
+      );
+    }
+
     return (
       <div
         className="card shadow-sm mt-4 mb-2 animate__animated animate__fadeInUp"
@@ -182,10 +230,11 @@ function NormalIntegrationPanel({ onBack }) {
       >
         <div className="card-body">
           <h3 className="card-title fs-6 fw-bold mb-2">{result.error ? "Error" : "Result"}</h3>
-          {/* LaTeX render */}
-          {result.latex && (
+          {/* For definite integrals, render the integral and numeric result as specified */}
+          {!result.error && !result.isIndefinite && result.latex && display}
+          {/* For indefinite integrals, show KaTeX and +C */}
+          {result.isIndefinite && result.latex && (
             <div className="mb-2" style={{ fontSize: "1.17rem", display: "flex", alignItems: "center" }}>
-              {/* Safe KaTeX render */}
               <span
                 style={{ fontFamily: "serif, math", color: "#27395a" }}
                 dangerouslySetInnerHTML={{
@@ -194,13 +243,11 @@ function NormalIntegrationPanel({ onBack }) {
                     : result.latex
                 }}
               />
-              {/* Show + C plainly, only for indefinite */}
-              {result.isIndefinite && (
-                <span style={{ marginLeft: 7, color: "#e87a41", fontWeight: 600, fontSize: "1.11em", fontFamily: "inherit" }}>+ C</span>
-              )}
+              <span style={{ marginLeft: 7, color: "#e87a41", fontWeight: 600, fontSize: "1.11em", fontFamily: "inherit" }}>+ C</span>
             </div>
           )}
-          {result.plaintext && !result.latex && (
+          {/* If for any reason 'latex' is not present, fallback to plaintext */}
+          {result.plaintext && (!result.latex || result.error) && (
             <pre
               className="bg-light px-2 py-1 rounded border border-1 mt-1"
               style={{ fontFamily: "JetBrains Mono, monospace", fontSize: ".97rem" }}
