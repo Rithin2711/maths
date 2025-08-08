@@ -8,6 +8,7 @@ import ResultsPanel from "./components/ResultsPanel";
 import HomePage from "./components/HomePage";
 import IntegralOptionsPage from "./components/IntegralOptionsPage";
 import DifferentialOptionsPage from "./components/DifferentialOptionsPage";
+import NormalIntegrationPanel from "./components/NormalIntegrationPanel";
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
 
 // PUBLIC_INTERFACE
@@ -97,6 +98,26 @@ function App() {
         <IntegralOptionsPage
           onSelectOption={handleIntegralOption}
           onBack={handleBackFromSubSelector}
+        />
+      </div>
+    );
+  }
+  // --- NEW: Show Normal Integration panel if selected ---
+  if (homeMode === "integral" && integralSubOption === "normal") {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <NormalIntegrationPanel
+          onBack={() => {
+            setIntegralSubOption(null);
+          }}
         />
       </div>
     );
