@@ -1,18 +1,25 @@
 import React, { useState, useRef } from "react";
 import PropTypes from "prop-types";
+import nerdamer from "nerdamer";
+import "nerdamer/Calculus";
+import "nerdamer/Algebra";
+import "nerdamer/Solve";
+import "nerdamer/Extra";
 
 /**
  * PUBLIC_INTERFACE
- * Panel for performing Normal (Definite) Integration.
- * Allows input of lower and upper bounds and the integrand expression,
- * with quick-entry math symbol buttons for common functions and constants.
- * 
+ * Panel for performing Normal (Definite or Indefinite) Integration.
+ * Users may enter limits for definite integrals, or leave them blank for an indefinite integral.
+ * Displays the result in a styled area. Handles errors gracefully.
+ *
  * @param {function} onBack - Callback to return to Integral Options page.
  */
 function NormalIntegrationPanel({ onBack }) {
   const [lower, setLower] = useState("");
   const [upper, setUpper] = useState("");
   const [expr, setExpr] = useState("");
+  const [result, setResult] = useState({ latex: "", plaintext: "", error: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef();
 
   // List of symbols for quick-entry
@@ -55,11 +62,63 @@ function NormalIntegrationPanel({ onBack }) {
     }
   };
 
+  // Handle math computation on form submit
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setResult({ latex: "", plaintext: "", error: "" });
+    try {
+      // Validate the expression
+      if (!expr.trim()) throw new Error("Please enter the integrand expression.");
+
+      // Find integration variable (guess x by default)
+      let intVar = "x";
+      // Try to guess variable from the integrand (simple heuristic: find last alphabetic letter)
+      const varMatch = expr.match(/[a-zA-Z]+/g);
+      if (varMatch && varMatch.length > 0) {
+        intVar = varMatch[varMatch.length - 1];
+      }
+
+      // Check if both lower and upper are provided (definite), or neither (indefinite)
+      let resultLatex = "";
+      let resultRaw = "";
+      if ((lower.trim() && upper.trim())) {
+        // Definite integral
+        // Integrate and evaluate at bounds
+        const symIntegral = nerdamer(`integrate(${expr}, ${intVar})`).toString();
+        const valueUpper = nerdamer(symIntegral, { [intVar]: `(${upper})` }).evaluate().text();
+        const valueLower = nerdamer(symIntegral, { [intVar]: `(${lower})` }).evaluate().text();
+        const numericResult = nerdamer(`(${valueUpper})-(${valueLower})`).evaluate().text();
+
+        // Build a nice latex output
+        const latexIntegral = nerdamer(`latex(integrate(${expr},${intVar}))`).toString();
+        resultLatex = `\\int_{${lower}}^{${upper}} ${nerdamer(`latex(${expr})`)}\\,d${intVar} = ${numericResult}`;
+        resultRaw = `Definite integral: ${numericResult}`;
+      } else if (!lower.trim() && !upper.trim()) {
+        // Indefinite integral
+        const symIntegral = nerdamer(`integrate(${expr}, ${intVar})`).toString();
+        const latexIntegral = nerdamer(`latex(integrate(${expr},${intVar}))`).toString();
+        resultLatex = `${latexIntegral} + C`;
+        resultRaw = `Indefinite integral: ${symIntegral} + C`;
+      } else {
+        // One limit provided, the other blank: error
+        throw new Error("Please provide both limits for definite integral, or leave both blank for indefinite integral.");
+      }
+      setResult({ latex: resultLatex, plaintext: resultRaw, error: "" });
+    } catch (err) {
+      let errorMsg = "";
+      if (typeof err === "string") errorMsg = err;
+      else errorMsg = err?.message ?? "Unknown error occurred while integrating.";
+      setResult({ latex: "", plaintext: "", error: errorMsg });
+    }
+    setIsSubmitting(false);
+  };
+
   // Guidance text for users
   const infoText = (
     <div className="mt-2 small text-muted" style={{ fontSize: 14 }}>
       <span>
-        Enter the lower and upper limits for the definite integral.<br />
+        Enter lower and upper limits for a definite integral, OR leave them blank for an indefinite integral.<br />
         Expression example: <code>sin(x) + e^x</code> &nbsp; &bull; &nbsp;<code>cos(pi*x)</code>
         <br />
         Use the quick-entry buttons for common symbols/functions.
@@ -67,12 +126,56 @@ function NormalIntegrationPanel({ onBack }) {
     </div>
   );
 
+  // Result panel
+  const renderResult = () => {
+    if (!result.error && !result.latex && !result.plaintext) return null;
+    return (
+      <div
+        className="card shadow-sm mt-4 mb-2 animate__animated animate__fadeInUp"
+        style={{
+          borderRadius: 13,
+          maxWidth: 440,
+          margin: "0 auto",
+          background: "#fffefb",
+          border: result.error ? "2px solid #ffe1e1" : "2px solid #d0e6f6"
+        }}
+        tabIndex={0}
+        aria-live="polite"
+      >
+        <div className="card-body">
+          <h3 className="card-title fs-6 fw-bold mb-2">{result.error ? "Error" : "Result"}</h3>
+          {/* LaTeX render */}
+          {result.latex && (
+            <div className="mb-2" style={{ fontSize: "1.17rem" }}>
+              {/* Safely use KaTeX where available, else monospace fallback */}
+              <span>
+                {/* Lazy-load react-katex if possible; here we just innerHTML for the demo */}
+                <span style={{ fontFamily: "serif, math", color: "#27395a" }} dangerouslySetInnerHTML={{ __html: window.katex ? window.katex.renderToString(result.latex, { throwOnError: false }) : result.latex }} />
+              </span>
+            </div>
+          )}
+          {result.plaintext && !result.latex && (
+            <pre
+              className="bg-light px-2 py-1 rounded border border-1 mt-1"
+              style={{ fontFamily: "JetBrains Mono, monospace", fontSize: ".97rem" }}
+            >{result.plaintext}</pre>
+          )}
+          {result.error && (
+            <div className="alert alert-danger mt-2 py-1 px-2" style={{ borderRadius: 7, fontSize: "1rem" }}>
+              <span style={{ fontSize: "1.22rem", marginRight: 7 }}>❌</span>{result.error}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <main className="container py-5" style={{ maxWidth: 540 }}>
       <h2 className="fw-bold text-primary mb-4" tabIndex={0}>
         ∫ Normal Integration
       </h2>
-      <form autoComplete="off">
+      <form autoComplete="off" onSubmit={handleSubmit}>
         <div className="mb-3">
           <label htmlFor="lower-limit" className="form-label fw-semibold">
             Lower Limit
@@ -86,6 +189,7 @@ function NormalIntegrationPanel({ onBack }) {
             placeholder="e.g. 0"
             inputMode="decimal"
             style={{ borderRadius: 10 }}
+            autoComplete="off"
           />
         </div>
         <div className="mb-3">
@@ -101,6 +205,7 @@ function NormalIntegrationPanel({ onBack }) {
             placeholder="e.g. pi"
             inputMode="decimal"
             style={{ borderRadius: 10 }}
+            autoComplete="off"
           />
         </div>
         <div className="mb-2">
@@ -156,14 +261,15 @@ function NormalIntegrationPanel({ onBack }) {
             type="submit"
             className="btn btn-primary"
             style={{ borderRadius: 10, fontWeight: 600 }}
-            disabled={!(lower.trim() && upper.trim() && expr.trim())}
+            disabled={isSubmitting || !expr.trim() || ((lower.trim() && !upper.trim()) || (!lower.trim() && upper.trim()))}
             tabIndex={0}
             aria-label="Integrate"
           >
-            Compute Integral
+            {isSubmitting ? "Working..." : "Compute Integral"}
           </button>
         </div>
       </form>
+      {renderResult()}
     </main>
   );
 }
