@@ -62,7 +62,7 @@ function NormalIntegrationPanel({ onBack }) {
     }
   };
 
-  // Handle math computation on form submit
+  // Robust integral evaluation logic
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -79,27 +79,62 @@ function NormalIntegrationPanel({ onBack }) {
         intVar = varMatch[varMatch.length - 1];
       }
 
-      // Check if both lower and upper are provided (definite), or neither (indefinite)
+      // Helper for robust subs/evaluation with nerdamer
+      function evalAt(edgeExpr, symIntegral, variable) {
+        try {
+          // Substitute bound value, evaluate numerically with support for "pi" etc
+          return nerdamer(symIntegral)
+            .substitute(variable, nerdamer(edgeExpr).evaluate().text())
+            .evaluate()
+            .text();
+        } catch (err) {
+          // Fallback: try as plain variable assignment
+          try {
+            return nerdamer(symIntegral, { [variable]: edgeExpr }).evaluate().text();
+          } catch {
+            return "NaN";
+          }
+        }
+      }
+
       let resultLatex = "";
       let resultRaw = "";
       let isIndefinite = false;
-      if ((lower.trim() && upper.trim())) {
-        // Definite integral
-        // Integrate and evaluate at bounds
-        const symIntegral = nerdamer(`integrate(${expr}, ${intVar})`).toString();
-        const valueUpper = nerdamer(symIntegral, { [intVar]: `(${upper})` }).evaluate().text();
-        const valueLower = nerdamer(symIntegral, { [intVar]: `(${lower})` }).evaluate().text();
-        const numericResult = nerdamer(`(${valueUpper})-(${valueLower})`).evaluate().text();
 
-        // Build a nice latex output
-        const latexIntegral = nerdamer(`latex(integrate(${expr},${intVar}))`).toString();
+      if ((lower.trim() && upper.trim())) {
+        // Definite integral: ∫_a^b f(x) dx = F(b) - F(a)
+        let symIntegral, latexIntegral;
+        try {
+          symIntegral = nerdamer(`integrate(${expr},${intVar})`).toString();
+          latexIntegral = nerdamer(`latex(integrate(${expr},${intVar}))`).toString();
+        } catch (err) {
+          throw new Error("Integration failed (invalid expression). " + (err.message ?? ""));
+        }
+        // Evaluate at the bounds with robust numeric handling
+        let valueUpper = evalAt(upper, symIntegral, intVar);
+        let valueLower = evalAt(lower, symIntegral, intVar);
+
+        // Compute the numeric difference (nerdamer may give symbolic or number)
+        let numericResult;
+        try {
+          numericResult = nerdamer(`(${valueUpper})-(${valueLower})`).evaluate().text();
+        } catch {
+          numericResult = "NaN";
+        }
+
+        // Display symbolic and numeric result
         resultLatex = `\\int_{${lower}}^{${upper}} ${nerdamer(`latex(${expr})`)}\\,d${intVar} = ${numericResult}`;
         resultRaw = `Definite integral: ${numericResult}`;
         isIndefinite = false;
       } else if (!lower.trim() && !upper.trim()) {
         // Indefinite integral
-        const symIntegral = nerdamer(`integrate(${expr}, ${intVar})`).toString();
-        const latexIntegral = nerdamer(`latex(integrate(${expr},${intVar}))`).toString();
+        let symIntegral, latexIntegral;
+        try {
+          symIntegral = nerdamer(`integrate(${expr},${intVar})`).toString();
+          latexIntegral = nerdamer(`latex(integrate(${expr},${intVar}))`).toString();
+        } catch (err) {
+          throw new Error("Indefinite integration failed (invalid expression). " + (err.message ?? ""));
+        }
         resultLatex = `${latexIntegral}`;
         resultRaw = `Indefinite integral: ${symIntegral} + C`;
         isIndefinite = true;
