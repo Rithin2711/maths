@@ -5,27 +5,19 @@ import MathInputPanel from "./components/MathInputPanel";
 import OperationSelector from "./components/OperationSelector";
 import ValidationFeedback from "./components/ValidationFeedback";
 import ResultsPanel from "./components/ResultsPanel";
+import HomePage from "./components/HomePage";
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
-
-// Friendly icons for operation hints
-const OP_ICONS = {
-  limit: "🍀",
-  integral: "∫",
-  trigonometric: "𝚃𝚛𝚒𝚐",
-};
-const OP_DESCS = {
-  limit: "Calculate the value a function approaches.",
-  integral: "Find the integral or area under a curve.",
-  trigonometric: "Evaluate sine, cosine, tangent, etc.",
-};
 
 // PUBLIC_INTERFACE
 /**
  * Root application component, overhauled for user friendliness, onboarding, and accessibility.
- * Major user guidance banners, inline tooltips, operation icons, lively transitions.
+ * Includes home screen with mode selection (Integral, Differential, Limits).
  */
 function App() {
   const [theme, setTheme] = useState("light");
+  const [homeMode, setHomeMode] = useState(null); // "integral", "differential", "limits"
+
+  // States for main math panel after operation selected
   const [mathExpr, setMathExpr] = useState("");
   const [operation, setOperation] = useState("limit");
   const [validation, setValidation] = useState({ valid: true, message: "" });
@@ -42,17 +34,67 @@ function App() {
     );
   };
 
-  // Handle input changes, validate in real time
+  // -- Start Panel Navigation Logic --
+  const handleHomeSelect = (mode) => {
+    setHomeMode(mode);
+    // Preload correct operation string for compatibility with math engine
+    setOperation(mode === "limits" ? "limit" : mode);
+  };
+
+  // -- End Panel Navigation Logic --
+
+  // Keyboard shortcut for toggle help/examples (call ONLY ONCE, top-level)
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.ctrlKey && e.key === "h") {
+        e.preventDefault();
+        setShowExample((v) => !v);
+        focusHelp();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+    // eslint-disable-next-line
+  }, []);
+
+  // If on home page, show the HomePage component
+  if (!homeMode) {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <HomePage onSelectMode={handleHomeSelect} />
+      </div>
+    );
+  }
+
+  // Panel logic for mode (mode-specific heading only for now, main UI appears afterward)
+  const getModeHeading = () => {
+    switch (homeMode) {
+      case "integral":
+        return <h2 className="fw-bold mb-4 text-primary">Integral Calculator</h2>;
+      case "differential":
+        return <h2 className="fw-bold mb-4 text-danger">Differential Calculator</h2>;
+      case "limits":
+        return <h2 className="fw-bold mb-4 text-success">Limit Calculator</h2>;
+      default:
+        return null;
+    }
+  };
+
+  // Handle math expression changes and operation, same as before
   const handleInputChange = (expr) => {
     setMathExpr(expr);
     const res = validateMathExpression(expr, operation);
     setValidation(res);
-    if (res.valid) {
-      setResult({ formatted: "", error: "", raw: "" });
-    }
+    if (res.valid) setResult({ formatted: "", error: "", raw: "" });
   };
-
-  // Handle operation selector changes
   const handleOperationChange = (op) => {
     setOperation(op);
     const res = validateMathExpression(mathExpr, op);
@@ -61,7 +103,6 @@ function App() {
     setShowExample(false);
   };
 
-  // PUBLIC_INTERFACE
   /** Submits the calculation on user action */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,25 +129,27 @@ function App() {
     if (el) el.focus();
   };
 
-  // Preload nice examples per operation
+  // Preload examples per operation
   const examples = {
     limit: "lim_{x\\to0} sin(x)/x",
     integral: "\\int x^2 dx",
+    differential: "d/dx x^2",
     trigonometric: "cos(3.14159)",
   };
 
-  // Accessible keyboard shortcut hint for showing help/examples
-  React.useEffect(() => {
-    const handler = (e) => {
-      if (e.ctrlKey && e.key === "h") {
-        e.preventDefault();
-        setShowExample((v) => !v);
-        focusHelp();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+  // Public operation icons/descriptions
+  const OP_ICONS = {
+    limit: "🍀",
+    integral: "∫",
+    differential: "𝑑/𝑑𝑥",
+    trigonometric: "𝚃𝚛𝚒𝚐",
+  };
+  const OP_DESCS = {
+    limit: "Calculate the value a function approaches.",
+    integral: "Find the integral or area under a curve.",
+    differential: "Find the derivative or rate of change.",
+    trigonometric: "Evaluate sine, cosine, tangent, etc.",
+  };
 
   // Accessibility: App title & heading for screen readers
   return (
@@ -124,66 +167,8 @@ function App() {
             {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
           </button>
         </div>
-        {/* Friendly onboarding banner with keyboard nav hint */}
-        <div
-          className="alert alert-primary d-flex align-items-center gap-3 fade show animate__animated animate__fadeInDown"
-          role="status"
-          tabIndex={0}
-          aria-live="polite"
-          id="onboard-help"
-          style={{
-            boxShadow: "0 4px 24px rgba(52,104,212,0.08)",
-            borderRadius: 14,
-            marginBottom: 24,
-          }}
-        >
-          <span style={{ fontSize: 32 }} aria-hidden>
-            🤗
-          </span>
-          <div className="text-start" style={{ flex: 1 }}>
-            <strong>Welcome to CalcMaster!</strong>
-            <div>
-              Enter a math expression below, select an operation, and click
-              <span className="mx-1 badge bg-success text-light" aria-hidden>
-                Compute
-              </span>
-              .
-            </div>
-            <div className="small text-muted">
-              <strong>Tip:</strong> Try {" "}
-              <button
-                type="button"
-                className="btn btn-link btn-sm p-0 align-baseline"
-                style={{ textDecoration: "underline dotted", color: "#E87A41" }}
-                tabIndex={0}
-                onClick={() => {
-                  setMathExpr(examples[operation]);
-                  setShowExample(true);
-                }}
-                aria-label={`Insert sample for "${operation}" operation`}
-              >
-                example
-              </button>{" "}
-              &nbsp;or press{" "}
-              <kbd style={{ background: "#faf3e6", border: "1px solid #cfcfcf", borderRadius: 2, fontSize: 12 }}>
-                Ctrl
-              </kbd>
-              +
-              <kbd style={{ background: "#faf3e6", border: "1px solid #cfcfcf", borderRadius: 2, fontSize: 12 }}>
-                H
-              </kbd>
-              {" "}for help!
-            </div>
-          </div>
-          <span
-            role="tooltip"
-            aria-label="Instructions: Enter math, pick an operation, and press Compute"
-            style={{ cursor: "help" }}
-            tabIndex={0}
-          >
-            ℹ️
-          </span>
-        </div>
+        {/* Panel title for current mode */}
+        {getModeHeading()}
 
         <section aria-label="Math Input Panel" className="mb-4 animate__animated animate__fadeInUp">
           <form onSubmit={handleSubmit} autoComplete="off">
