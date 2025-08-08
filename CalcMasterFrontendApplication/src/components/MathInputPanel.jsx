@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 
 // PUBLIC_INTERFACE
 /**
- * Input panel for entering a math expression.
+ * Input panel for math expression - upgrades with inline help, icon, and friendly banner.
  * @param {string} value - The expression value.
  * @param {Function} onChange - Callback for input change.
  * @param {boolean} [disabled]
@@ -25,7 +25,17 @@ function MathInputPanel({ value, onChange, disabled = false, ariaLabel }) {
 
   return (
     <label className="form-label w-100" htmlFor="math-expr-input">
-      <span className="fw-bold">Expression</span>
+      <span className="fw-bold" style={{ fontSize: 18 }}>
+        ✏️ Expression{" "}
+        <span
+          tabIndex={0}
+          role="tooltip"
+          style={{ fontSize: 14, color: "#E87A41", cursor: "help" }}
+          aria-label="You can use basic math, parentheses, and math keywords!"
+        >
+          (What's this?)
+        </span>
+      </span>
       <input
         ref={inputRef}
         id="math-expr-input"
@@ -42,10 +52,25 @@ function MathInputPanel({ value, onChange, disabled = false, ariaLabel }) {
         inputMode="text"
         aria-required="true"
         aria-describedby="math-expr-help"
-        style={{ fontFamily: "'JetBrains Mono', 'Menlo', 'Consolas', monospace" }}
+        style={{
+          fontFamily: "'JetBrains Mono', 'Menlo', 'Consolas', monospace",
+          fontSize: "1.07rem",
+          borderRadius: 12,
+          marginTop: 3,
+          background: "#fafafc",
+        }}
+        placeholder='e.g. sin(x), ∫ x^2 dx, "lim_{x→0} sin(x)/x"'
       />
-      <div id="math-expr-help" className="form-text">
-        e.g. <code>sin(x)</code>, <code>\\int x^2 dx</code>, <code>lim_&#123;x\\to 0&#125; \\frac&#123;sin(x)&#125;&#123;x&#125;</code>
+      <div
+        id="math-expr-help"
+        className="form-text"
+        tabIndex={0}
+        aria-live="polite"
+        style={{ fontSize: 14, color: "#8e6128", background: "#fffbe5", borderRadius: 6, padding: "4px 9px", marginTop: 7 }}
+      >
+        Please enter your math expression.<br />
+        Examples: <code>sin(x)</code>, <code>∫ x² dx</code>, <code>lim_&#123;x→0&#125; sin(x)/x</code><br />
+        <span className="text-muted small">Tip: Use basic math symbols, trigonometric or calculus notation!</span>
       </div>
     </label>
   );
