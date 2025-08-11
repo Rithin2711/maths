@@ -8,6 +8,7 @@ import "nerdamer/Extra";
 import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
 import Plot from "react-plotly.js";
+import { create, all } from "mathjs";
 
 // PUBLIC_INTERFACE
 /**
@@ -64,6 +65,10 @@ function AreaOfFigurePanel({ onBack }) {
       show: false,
     });
     setPlotData(null);
+
+    // MathJS instance for numeric integration
+    const math = create(all);
+
     // Validation
     if (!topExpr.trim() || !botExpr.trim() || !xl.trim() || !xu.trim()) {
       setResult((r) => ({
@@ -88,17 +93,22 @@ function AreaOfFigurePanel({ onBack }) {
       const a = Number(lowerVal), b = Number(upperVal);
       if (!isFinite(a) || !isFinite(b) || a === b) throw new Error("Bounds must be real and distinct.");
 
-      // Symbolic integral, latex, etc.
-      let symIntegral, latexIntegral, latexIntegrand;
+      // --- Area Calculation Start ---
+      // Try symbolic/analytic by nerdamer, fallback to numeric with mathjs
+      let symIntegral, latexIntegral, latexIntegrand, areaValue, usedNumeric = false;
       try {
         symIntegral = nerdamer(`integrate(${diff},${intVar})`).toString();
         latexIntegral = nerdamer(`latex(integrate(${diff},${intVar}))`).toString();
         latexIntegrand = nerdamer(`latex(${diff})`).toString();
       } catch (err) {
-        throw new Error("Integration failed (check your equations). " + (err?.message || ""));
+        // If symbolic integration fails, set blank values and continue
+        symIntegral = "";
+        latexIntegral = "";
+        latexIntegrand = nerdamer(`latex(${diff})`).toString();
       }
 
-      // Numeric evaluation at bounds
+      // Numeric evaluation at bounds via symbolic: areaSYMBOLIC = F(b) - F(a)
+      let valUpper, valLower;
       function evalAt(edge, integral, variable) {
         try {
           return nerdamer(integral).substitute(variable, edge).evaluate().text();
@@ -106,20 +116,57 @@ function AreaOfFigurePanel({ onBack }) {
           return "NaN";
         }
       }
-      let valUpper = evalAt(upperVal, symIntegral, intVar);
-      let valLower = evalAt(lowerVal, symIntegral, intVar);
+      if (symIntegral) {
+        valUpper = evalAt(upperVal, symIntegral, intVar);
+        valLower = evalAt(lowerVal, symIntegral, intVar);
+        try {
+          areaValue = nerdamer(`(${valUpper})-(${valLower})`).evaluate().text();
+        } catch {
+          areaValue = "NaN";
+        }
+      } else {
+        areaValue = "NaN"; // Will trigger numeric fallback
+        latexIntegral = "";
+      }
 
-      let areaValue;
-      try {
-        areaValue = nerdamer(`(${valUpper})-(${valLower})`).evaluate().text();
-      } catch {
-        areaValue = "NaN";
+      // Decide on fallback: If result is not a number or is NaN/infinity, use numeric!
+      if (!areaValue || areaValue === "NaN" || !isFinite(Number(areaValue))) {
+        // --- Numeric integration fallback via mathjs trapezoidal rule ---
+        // Parse as mathjs functions
+        try {
+          const fMath = math.compile(topExpr);
+          const gMath = math.compile(botExpr);
+          const n = 400;
+          const xMin = Math.min(a, b), xMax = Math.max(a, b);
+          const step = (xMax - xMin) / (n - 1);
+          let numericArea = 0;
+          let lastY = null;
+          // Trapezoidal rule: ∑ 0.5*(y1+y2)*(dx)
+          for (let i = 0; i < n; ++i) {
+            const x = xMin + step * i;
+            const y = fMath.evaluate({x}) - gMath.evaluate({x});
+            if (i > 0) {
+              numericArea += 0.5 * (lastY + y) * step;
+            }
+            lastY = y;
+          }
+          areaValue = math.format(numericArea, { precision: 10 });
+          usedNumeric = true;
+          // Construct latex replacements if needed (should match previous LaTeX if possible)
+          latexIntegrand = nerdamer(`latex(${diff})`).toString();
+          latexIntegral = ""; // Can't show analytic integral
+        } catch (err) {
+          throw new Error(
+            "Numeric integration failed. Please check your expressions for validity. " +
+              (err?.message || "")
+          );
+        }
       }
 
       const areaFormulaLatex = `A = \\int_{${nerdamer(`latex(${xl})`)} }^{${nerdamer(`latex(${xu})`)} } \\Big( ${latexIntegrand} \\Big)\\,dx`;
 
       // --- Build Plot Data ---
-      // Use n steps for a smooth curve/area
+      // Use n steps for a smooth curve/area and for the numeric value above
       const n = 400;
       const xMin = Math.min(a, b), xMax = Math.max(a, b);
       const step = (xMax - xMin) / (n - 1);
@@ -177,7 +224,7 @@ function AreaOfFigurePanel({ onBack }) {
       const margin = 0.12 * Math.abs(maxY - minY || 1);
 
       setResult({
-        latex: `${areaFormulaLatex} = ${areaValue}`,
+        latex: `${areaFormulaLatex} = ${areaValue}${usedNumeric ? "\\ (numeric\\ value)" : ""}`,
         numeric: areaValue,
         error: "",
         latexIntegrand: latexIntegrand,
