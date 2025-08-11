@@ -7,12 +7,12 @@ import "nerdamer/Solve";
 import "nerdamer/Extra";
 import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
+import Plot from "react-plotly.js";
 
 // PUBLIC_INTERFACE
 /**
  * Panel for Area Between Curves: Takes equations for top (f(x)), bottom (g(x)), x-lower, x-upper;
- * Calculates ∫[a,b] (f(x)-g(x)) dx and displays in LaTeX.
- * Handles invalid input, errors, and provides accessible labels/hints.
+ * Calculates ∫[a,b] (f(x)-g(x)) dx, displays in LaTeX, and visualizes the curves + shaded area.
  * @param {function} onBack - Callback to return to previous options page.
  */
 function AreaOfFigurePanel({ onBack }) {
@@ -28,12 +28,30 @@ function AreaOfFigurePanel({ onBack }) {
     formulaLatex: "",
     show: false,
   });
+  const [plotData, setPlotData] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const topInputRef = useRef();
   const botInputRef = useRef();
 
-  // Handles form submission and area computation
+  // Evaluates a math expression string as a function of x using nerdamer
+  function makeNerdamerEvalFunc(expr) {
+    // Returns a function: x -> value
+    try {
+      return function(x) {
+        try {
+          const res = nerdamer(expr, { x }).evaluate();
+          return Number(res.text());
+        } catch {
+          return NaN;
+        }
+      };
+    } catch {
+      return (_x) => NaN;
+    }
+  }
+
+  // Handles form submission, area computation, and prepares plot data
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -45,6 +63,7 @@ function AreaOfFigurePanel({ onBack }) {
       formulaLatex: "",
       show: false,
     });
+    setPlotData(null);
     // Validation
     if (!topExpr.trim() || !botExpr.trim() || !xl.trim() || !xu.trim()) {
       setResult((r) => ({
@@ -57,19 +76,19 @@ function AreaOfFigurePanel({ onBack }) {
     }
     let intVar = "x";
     try {
-      // Try symbolic subtraction
+      // Prepare expressions and bounds
       const diff = `(${topExpr})-(${botExpr})`;
-      // Try parsing bounds as numeric (use nerdamer for safe pi etc)
-      let lowerVal = "";
-      let upperVal = "";
+      let lowerVal = "", upperVal = "";
       try {
         lowerVal = nerdamer(xl).evaluate().text();
         upperVal = nerdamer(xu).evaluate().text();
       } catch {
         throw new Error("Invalid x-bound values. Use numbers or expressions involving pi/e.");
       }
+      const a = Number(lowerVal), b = Number(upperVal);
+      if (!isFinite(a) || !isFinite(b) || a === b) throw new Error("Bounds must be real and distinct.");
 
-      // Symbolic integral
+      // Symbolic integral, latex, etc.
       let symIntegral, latexIntegral, latexIntegrand;
       try {
         symIntegral = nerdamer(`integrate(${diff},${intVar})`).toString();
@@ -79,8 +98,7 @@ function AreaOfFigurePanel({ onBack }) {
         throw new Error("Integration failed (check your equations). " + (err?.message || ""));
       }
 
-      // Numeric evaluation
-      // Evaluate at upper and lower bound, robustly
+      // Numeric evaluation at bounds
       function evalAt(edge, integral, variable) {
         try {
           return nerdamer(integral).substitute(variable, edge).evaluate().text();
@@ -91,7 +109,6 @@ function AreaOfFigurePanel({ onBack }) {
       let valUpper = evalAt(upperVal, symIntegral, intVar);
       let valLower = evalAt(lowerVal, symIntegral, intVar);
 
-      // Compute numeric area
       let areaValue;
       try {
         areaValue = nerdamer(`(${valUpper})-(${valLower})`).evaluate().text();
@@ -99,8 +116,65 @@ function AreaOfFigurePanel({ onBack }) {
         areaValue = "NaN";
       }
 
-      // Compose formula for display
       const areaFormulaLatex = `A = \\int_{${nerdamer(`latex(${xl})`)} }^{${nerdamer(`latex(${xu})`)} } \\Big( ${latexIntegrand} \\Big)\\,dx`;
+
+      // --- Build Plot Data ---
+      // Use n steps for a smooth curve/area
+      const n = 400;
+      const xMin = Math.min(a, b), xMax = Math.max(a, b);
+      const step = (xMax - xMin) / (n - 1);
+      const xArr = [];
+      for (let i = 0; i < n; ++i) xArr.push(xMin + step * i);
+
+      // Build y=f(x), y=g(x)
+      const f = makeNerdamerEvalFunc(topExpr);
+      const g = makeNerdamerEvalFunc(botExpr);
+      const yTop = xArr.map(f);
+      const yBot = xArr.map(g);
+
+      // Area fill (between f(x) and g(x))
+      const areaX = [...xArr, ...xArr.slice().reverse()];
+      const areaY = [...yBot, ...yTop.slice().reverse()];
+
+      // Error handling for too many NaNs
+      let badF = yTop.filter(val => !isFinite(val)).length, badG = yBot.filter(val => !isFinite(val)).length;
+      if (badF > n * 0.5 || badG > n * 0.5)
+        throw new Error("Curves cannot be visualized for some x, check your function definitions or try a different interval.");
+
+      // Plotly traces
+      const plotSeries = [
+        {
+          x: xArr,
+          y: yTop,
+          type: "scatter",
+          mode: "lines",
+          name: "Top: f(x)",
+          line: {color: "#4ab66d", width: 3},
+        },
+        {
+          x: xArr,
+          y: yBot,
+          type: "scatter",
+          mode: "lines",
+          name: "Bottom: g(x)",
+          line: {color: "#e69f4d", width: 3, dash: "dot"},
+        },
+        {
+          x: areaX,
+          y: areaY,
+          fill: "toself",
+          fillcolor: "rgba(72,175,239,0.20)",
+          line: {color: "rgba(144,185,245,0.5)", width: 0.5},
+          name: "Shaded Area",
+          type: "scatter",
+          mode: "lines",
+          showlegend: true,
+        },
+      ];
+
+      // Axes
+      const minY = Math.min(...yTop, ...yBot), maxY = Math.max(...yTop, ...yBot);
+      const margin = 0.12 * Math.abs(maxY - minY || 1);
 
       setResult({
         latex: `${areaFormulaLatex} = ${areaValue}`,
@@ -109,6 +183,22 @@ function AreaOfFigurePanel({ onBack }) {
         latexIntegrand: latexIntegrand,
         formulaLatex: areaFormulaLatex,
         show: true,
+      });
+      setPlotData({
+        data: plotSeries,
+        layout: {
+          title: "Visualization of Area Between Curves",
+          autosize: true,
+          showlegend: true,
+          legend: { x: 1, y: 1 },
+          xaxis: { title: "x", range: [xMin, xMax], zeroline: true, zerolinewidth: 2 },
+          yaxis: { title: "y", range: [minY - margin, maxY + margin], zeroline: true, zerolinewidth: 2 },
+          margin: { t: 48, l: 56, r: 24, b: 56 },
+          paper_bgcolor: "#f9fbfd",
+          plot_bgcolor: "#fafeff",
+          font: { family: "inherit", size: 15 }
+        },
+        config: { responsive: true, displayModeBar: true }
       });
     } catch (err) {
       setResult({
@@ -120,6 +210,7 @@ function AreaOfFigurePanel({ onBack }) {
               "An error occurred. Please check your input equations and bounds.",
         show: true,
       });
+      setPlotData(null);
     }
     setIsSubmitting(false);
   };
@@ -159,8 +250,29 @@ function AreaOfFigurePanel({ onBack }) {
     );
   };
 
+  // The Plotly figure
+  const renderPlot = () => {
+    if (plotData && result.show && !result.error) {
+      return (
+        <div className="card bg-white shadow-sm my-4 py-3 px-1 animate__animated animate__fadeInUp"
+             style={{ borderRadius: 16, maxWidth: 650, margin: "0 auto" }}>
+          <div className="card-body">
+            <Plot
+              data={plotData.data}
+              layout={plotData.layout}
+              config={plotData.config}
+              style={{ width: "100%", height: "380px", minHeight: 300 }}
+              useResizeHandler={true}
+            />
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <main className="container py-5" style={{ maxWidth: 560 }}>
+    <main className="container py-5" style={{ maxWidth: 630 }}>
       <h2 className="fw-bold text-success mb-4" tabIndex={0}>
         🟩 Area of a Figure (Between Curves)
       </h2>
@@ -271,6 +383,7 @@ function AreaOfFigurePanel({ onBack }) {
         </div>
       </form>
       {renderResult()}
+      {renderPlot()}
     </main>
   );
 }
