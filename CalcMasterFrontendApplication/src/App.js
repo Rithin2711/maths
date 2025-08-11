@@ -12,6 +12,7 @@ import NormalIntegrationPanel from "./components/NormalIntegrationPanel";
 import AreaOfFigurePanel from "./components/AreaOfFigurePanel";
 import VolumeTripleIntegralPanel from "./components/VolumeTripleIntegralPanel";
 import NormalDifferentialPanel from "./components/NormalDifferentialPanel";
+import TangentAtPointPanel from "./components/TangentAtPointPanel";
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
 
 // PUBLIC_INTERFACE
@@ -197,6 +198,26 @@ function App() {
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
         <NormalDifferentialPanel
+          onBack={() => {
+            setDifferentialSubOption(null);
+          }}
+        />
+      </div>
+    );
+  }
+  // --- NEW: Tangent at a Point Panel ---
+  if (homeMode === "differential" && differentialSubOption === "tangent") {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <TangentAtPointPanel
           onBack={() => {
             setDifferentialSubOption(null);
           }}

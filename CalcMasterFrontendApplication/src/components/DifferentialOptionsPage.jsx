@@ -19,7 +19,7 @@ function DifferentialOptionsPage({ onSelectOption, onBack }) {
     {
       key: "tangent",
       label: "Tangent at a Point",
-      desc: "Compute the equation of tangent at a specific point.",
+      desc: "Compute the equation of the tangent line to y = f(x) at a specified x₀.",
       color: "#006eff",
       emoji: "📏",
     },
