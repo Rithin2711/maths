@@ -198,7 +198,7 @@ function LimitPanel({ onBack }) {
     setIsSubmitting(false);
   };
 
-  // Render results and steps
+  // Render results and steps: Polished, structured mathematical step display
   const renderSteps = () => {
     if (!result.show) return null;
     if (result.error) {
@@ -215,39 +215,97 @@ function LimitPanel({ onBack }) {
       );
     }
     if (result.latex || (result.steps && result.steps.length)) {
+      // Helper for accessibility numbering
+      const stepLabel = (idx) => (
+        <span
+          className="d-inline-block rounded-circle bg-primary text-white fw-bold"
+          style={{
+            minWidth: 29, height: 29, display: "inline-flex", justifyContent: "center", alignItems: "center",
+            marginRight: 10, fontSize: 16, verticalAlign: "middle", boxShadow: "0 2px 6px #c9f5de4f"
+          }}
+        >
+          {idx + 1}
+        </span>
+      );
       return (
         <div
-          className="card shadow-sm my-4 animate__animated animate__fadeInUp"
+          className="limit-steps-panel card shadow-sm my-4 animate__animated animate__fadeInUp"
           style={{
-            borderRadius: 13,
-            maxWidth: 520,
+            borderRadius: 16,
+            maxWidth: 540,
             margin: "0 auto",
-            background: "#fafeff",
+            background: "#f9fcfe",
+            border: "2px solid #dbeef9",
+            boxShadow: "0 4px 32px #e1ebfa3e"
           }}
           tabIndex={0}
           aria-live="polite"
         >
           <div className="card-body">
-            <h3 className="card-title fs-6 fw-bold mb-2">Limit Solution Steps</h3>
-            {result.steps &&
-              result.steps.map((step, idx) => (
-                <div key={idx} className="mb-3">
-                  <div className="fw-semibold" style={{ fontSize: 15 }}>
-                    {step.description}
-                  </div>
-                  {step.latex && (
-                    <div style={{ fontSize: "1.14rem", margin: "2px 0 0 1.5px" }}>
-                      <BlockMath>{step.latex}</BlockMath>
+            <h3
+              className="card-title fs-5 fw-bold mb-3"
+              style={{
+                color: "#148861",
+                letterSpacing: ".015em",
+                textShadow: "0 2px 8px #e6f7ff6e",
+              }}>
+              🧩 Solution Steps
+            </h3>
+            {result.steps && result.steps.length > 0 && (
+              <ol className="ps-1" style={{ listStyle: "none", marginLeft: 0 }}>
+                {result.steps.map((step, idx) => (
+                  <li key={idx}
+                    className="mb-4"
+                    style={{
+                        background: "#fff",
+                        border: "1.5px solid #bee9fb",
+                        borderRadius: 11,
+                        padding: "14px 17px 8px 14px",
+                        marginBottom: 19,
+                        boxShadow: "0 2px 18px #dbf8fa2e",
+                        position: "relative",
+                        transition: "box-shadow .18s"
+                    }}>
+                    <div className="fw-semibold pb-1 d-flex align-items-center" style={{ fontSize: 15 }}>
+                        {stepLabel(idx)}
+                        <span style={{ color: "#177b56", fontWeight: 600 }}>{step.description}</span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {step.latex && (
+                      <div style={{ fontSize: "1.19rem", margin: "7px 0 2px 0" }}>
+                        <BlockMath>{step.latex}</BlockMath>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
             {result.latex && (
-              <div className="p-3 mt-2 border-top" style={{ background: "#f0f7f4", borderRadius: 9 }}>
-                <b>Final Answer:</b>
-                <div className="mt-1">
+              <div
+                className="p-3 mt-2 border-0 shadow-sm animate__animated animate__pulse"
+                style={{
+                  background: "#e8fbe4",
+                  borderRadius: 13,
+                  boxShadow: "0 2px 14px #cdebd847",
+                  fontWeight: 610
+                }}>
+                <span className="fw-bold" style={{ fontSize: "1.07rem", color: "#199345" }}>
+                  <span aria-label="Final Answer" className="me-1" style={{ fontSize: "1.17rem" }}>✔️ Final Answer:</span>
+                </span>
+                <div className="mt-2 mb-2">
                   <BlockMath>{result.latex}</BlockMath>
                 </div>
+                {result.finalVal && (
+                  <div className="text-success small fw-semibold" style={{ fontSize: 15 }}>
+                    <span aria-label="limit value">Value: </span>
+                    <span style={{
+                      fontSize: "1.16em",
+                      background: "#dbfbe6",
+                      padding: "2px 10px",
+                      borderRadius: 7,
+                      fontFamily: "JetBrains Mono, Menlo, monospace"
+                    }}>{result.finalVal}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

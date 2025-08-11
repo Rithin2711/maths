@@ -106,3 +106,49 @@
     font-size: 12px;
   }
 }
+
+/* ---- LimitPanel Polished Steps Layout ---- */
+.limit-steps-panel {
+  background: #f9fcfe;
+  border-radius: 16px;
+  border: 2px solid #dbeef9;
+  box-shadow: 0 4px 32px #e1ebfa38;
+}
+.limit-steps-panel ol {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+.limit-steps-panel li {
+  margin-bottom: 22px;
+}
+.limit-steps-panel .step-number {
+  display: inline-block;
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 50%;
+  background: #129861;
+  color: #fff;
+  font-weight: bold;
+  font-size: 16px;
+  text-align: center;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+.limit-steps-panel .final-answer-area {
+  background: #e8fbe4;
+  border-radius: 13px;
+  box-shadow: 0 2px 14px #cdebd847;
+  padding: 14px 20px;
+  margin-top: 11px;
+  border: 0;
+}
+.limit-steps-panel .final-val-badge {
+  background: #dbfbe6;
+  padding: 2px 10px;
+  border-radius: 7px;
+  font-size: 1.15em;
+  font-family: "JetBrains Mono", "Menlo", monospace;
+  color: #1b7035;
+  font-weight: 600;
+}
