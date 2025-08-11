@@ -11,6 +11,7 @@ import DifferentialOptionsPage from "./components/DifferentialOptionsPage";
 import NormalIntegrationPanel from "./components/NormalIntegrationPanel";
 import AreaOfFigurePanel from "./components/AreaOfFigurePanel";
 import VolumeTripleIntegralPanel from "./components/VolumeTripleIntegralPanel";
+import NormalDifferentialPanel from "./components/NormalDifferentialPanel";
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
 
 // PUBLIC_INTERFACE
@@ -178,6 +179,27 @@ function App() {
         <DifferentialOptionsPage
           onSelectOption={handleDifferentialOption}
           onBack={handleBackFromSubSelector}
+        />
+      </div>
+    );
+  }
+
+  // --- NEW: Normal Differential Panel ---
+  if (homeMode === "differential" && differentialSubOption === "normal") {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <NormalDifferentialPanel
+          onBack={() => {
+            setDifferentialSubOption(null);
+          }}
         />
       </div>
     );
