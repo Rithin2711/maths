@@ -205,6 +205,28 @@ function App() {
       </div>
     );
   }
+  // --- NEW: Differential Equation Solver Panel ---
+  if (homeMode === "differential" && differentialSubOption === "diffeq") {
+    // Lazy-load to avoid initial bundle size increase
+    const DifferentialEquationSolverPanel = require("./components/DifferentialEquationSolverPanel").default;
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <DifferentialEquationSolverPanel
+          onBack={() => {
+            setDifferentialSubOption(null);
+          }}
+        />
+      </div>
+    );
+  }
   // --- NEW: Tangent at a Point Panel ---
   if (homeMode === "differential" && differentialSubOption === "tangent") {
     return (

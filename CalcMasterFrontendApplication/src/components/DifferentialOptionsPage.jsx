@@ -17,6 +17,13 @@ function DifferentialOptionsPage({ onSelectOption, onBack }) {
       emoji: "𝑑/𝑑𝑥",
     },
     {
+      key: "diffeq",
+      label: "Differential Equation Solver",
+      desc: "Solve a first-order ODE symbolically.",
+      color: "#f3c538",
+      emoji: "🟨",
+    },
+    {
       key: "tangent",
       label: "Tangent at a Point",
       desc: "Compute the equation of the tangent line to y = f(x) at a specified x₀.",
