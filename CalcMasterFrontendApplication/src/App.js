@@ -10,6 +10,7 @@ import IntegralOptionsPage from "./components/IntegralOptionsPage";
 import DifferentialOptionsPage from "./components/DifferentialOptionsPage";
 import NormalIntegrationPanel from "./components/NormalIntegrationPanel";
 import AreaOfFigurePanel from "./components/AreaOfFigurePanel";
+import VolumeTripleIntegralPanel from "./components/VolumeTripleIntegralPanel";
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
 
 // PUBLIC_INTERFACE
@@ -136,6 +137,26 @@ function App() {
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
         <AreaOfFigurePanel
+          onBack={() => {
+            setIntegralSubOption(null);
+          }}
+        />
+      </div>
+    );
+  }
+  // --- NEW: Volume (Triple Integral) panel route ---
+  if (homeMode === "integral" && integralSubOption === "volume") {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <VolumeTripleIntegralPanel
           onBack={() => {
             setIntegralSubOption(null);
           }}

@@ -26,7 +26,7 @@ function IntegralOptionsPage({ onSelectOption, onBack }) {
     {
       key: "volume",
       label: "Volume",
-      desc: "Find the volume of a solid of revolution.",
+      desc: "Triple integral (Volume of region)",
       color: "#e87a41",
       emoji: "🟠",
     },
