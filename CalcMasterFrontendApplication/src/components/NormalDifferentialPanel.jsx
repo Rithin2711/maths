@@ -14,27 +14,37 @@ import "katex/dist/katex.min.css";
  * User chooses Partial or Full Differential. For Partial:
  *  - Inputs: f(x, y) and select variable (x or y) to differentiate by.
  *  - Calculates ∂f/∂x or ∂f/∂y using nerdamer, shows LaTeX and result.
- *  - For Full Differential, offers a description/placeholder.
+ * For Full Differential:
+ *  - Accepts a single-variable expression and computes ordinary derivative.
  *
  * @param {function} onBack - Callback to return to options/select page
  */
 function NormalDifferentialPanel({ onBack }) {
+  // --- Tab State ---
   const [option, setOption] = useState("partial"); // "partial" or "full"
-  // Partial Differential State
+
+  // --- Partial Differential State ---
   const [expr, setExpr] = useState("");
   const [varToDiff, setVarToDiff] = useState("x");
   const [result, setResult] = useState({ latex: "", error: "", show: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Handler for Differential type
+  // --- Full Differential State ---
+  const [fullExpr, setFullExpr] = useState("");
+  const [singleVar, setSingleVar] = useState(""); // detected variable
+  const [fullResult, setFullResult] = useState({ latex: "", error: "", show: false });
+  const [fullIsSubmitting, setFullIsSubmitting] = useState(false);
+
+  // --- Partial Handler ---
   const handleOptionChange = (val) => {
     setOption(val);
     // reset state when switching types
     setExpr("");
     setResult({ latex: "", error: "", show: false });
+    setFullExpr("");
+    setFullResult({ latex: "", error: "", show: false });
   };
 
-  // Handler for calculation of partial derivative
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -69,7 +79,73 @@ function NormalDifferentialPanel({ onBack }) {
     setIsSubmitting(false);
   };
 
-  // Partial Differential Inputs and result display
+  // --- Full Differential (Ordinary Derivative) ---
+  // Helper: Detect single variable in input using regex
+  function detectSingleVariable(expr) {
+    if (!expr) return "";
+    const matches = expr.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+    // Remove known math functions and constants that are not variables:
+    const blacklist = [
+      "sin", "cos", "tan", "sec", "csc", "cot",
+      "arcsin", "arccos", "arctan",
+      "log", "ln", "exp", "sqrt", "abs", "min", "max",
+      "e", "pi", "PI"
+    ];
+    const freq = {};
+    for (const w of matches) {
+      if (!blacklist.includes(w)) freq[w] = (freq[w] || 0) + 1;
+    }
+    const vars = Object.keys(freq);
+    return vars.length === 1 ? vars[0] : "";
+  }
+
+  const handleFullSubmit = (e) => {
+    e.preventDefault();
+    setFullIsSubmitting(true);
+    setFullResult({ latex: "", error: "", show: false });
+
+    if (!fullExpr.trim()) {
+      setFullResult({
+        latex: "",
+        error: "Please enter an expression to differentiate.",
+        show: true,
+      });
+      setFullIsSubmitting(false);
+      return;
+    }
+    // Determine single variable
+    const v = detectSingleVariable(fullExpr);
+    setSingleVar(v || "");
+    if (!v) {
+      setFullResult({
+        latex: "",
+        error: "The expression should contain exactly one variable (e.g. only x or only y).",
+        show: true,
+      });
+      setFullIsSubmitting(false);
+      return;
+    }
+    try {
+      // Compute ordinary derivative using nerdamer
+      const deriv = nerdamer(`diff(${fullExpr},${v})`).toString();
+      const latexDeriv = nerdamer(`latex(diff(${fullExpr},${v}))`).toString();
+      const inputLatex = nerdamer(`latex(${fullExpr})`).toString();
+      setFullResult({
+        latex: `\\frac{d}{d${v}}\\left(${inputLatex}\\right) = ${latexDeriv}`,
+        error: "",
+        show: true,
+      });
+    } catch (err) {
+      setFullResult({
+        latex: "",
+        error: "Could not compute derivative. Please check your expression is valid and uses only one variable.",
+        show: true,
+      });
+    }
+    setFullIsSubmitting(false);
+  };
+
+  // --- UIs ---
   const partialUI = (
     <form
       className="card shadow-sm p-4"
@@ -166,31 +242,78 @@ function NormalDifferentialPanel({ onBack }) {
     </form>
   );
 
-  // Full Differential (not implemented, so just a placeholder)
   const fullUI = (
-    <div
-      className="card shadow-sm p-4 text-center"
+    <form
+      className="card shadow-sm p-4"
       style={{ borderRadius: 16, background: "#f9fafd", maxWidth: 530, margin: "0 auto" }}
-      tabIndex={0}
+      autoComplete="off"
+      onSubmit={handleFullSubmit}
     >
-      <h4 className="fw-bold mb-2">Full Differential (Coming Soon)</h4>
-      <div style={{ color: "#b05b19", fontSize: "1.13rem" }}>
-        <p>
-          The Full Differential computes <span className="fw-bold">df</span> for a function f(x, y), that is:
-        </p>
-        <BlockMath>{"df = \\frac{\\partial f}{\\partial x} dx + \\frac{\\partial f}{\\partial y} dy"}</BlockMath>
-        <p className="text-muted mb-0">This feature will be added soon!</p>
+      <h4 className="fw-bold mb-3">Full Differential (Ordinary Derivative)</h4>
+      <div className="mb-3">
+        <label htmlFor="full-ordinary-expr" className="form-label fw-semibold">
+          Expression (single variable)
+        </label>
+        <input
+          id="full-ordinary-expr"
+          className="form-control"
+          type="text"
+          value={fullExpr}
+          onChange={e => { setFullExpr(e.target.value); setFullResult({ latex: "", error: "", show: false }); }}
+          placeholder="e.g. x^3 + 7*x - 8"
+          inputMode="text"
+          spellCheck={false}
+          required
+          aria-label="Expression (single variable) for full differential"
+          style={{
+            borderRadius: 10,
+            fontFamily: "'JetBrains Mono', Menlo, monospace",
+            fontSize: "1.08rem",
+            background: "#fcf9ed"
+          }}
+        />
+        <div className="form-text mt-1" style={{ fontSize: 13 }}>
+          Enter an expression involving only a single variable (e.g. x or y, not both).
+        </div>
       </div>
-      <button
-        type="button"
-        className="btn btn-outline-secondary mt-4"
-        style={{ borderRadius: 10, fontWeight: 500 }}
-        onClick={onBack}
-        aria-label="Go Back"
-      >
-        ← Back
-      </button>
-    </div>
+      <div className="d-flex gap-3 mb-3">
+        <button
+          type="button"
+          className="btn btn-outline-secondary"
+          style={{ borderRadius: 10, fontWeight: 500 }}
+          onClick={onBack}
+          aria-label="Go Back"
+        >
+          ← Back
+        </button>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ borderRadius: 10, fontWeight: 600, minWidth: 170 }}
+          disabled={fullIsSubmitting || !fullExpr.trim()}
+          aria-label="Compute Ordinary Derivative"
+        >
+          {fullIsSubmitting ? "Calculating..." : "Compute Derivative"}
+        </button>
+      </div>
+      {/* Result or error */}
+      {fullResult.show && (
+        <div className="mt-4">
+          {fullResult.error && (
+            <div className="alert alert-danger" tabIndex={0} style={{ borderRadius: 8, fontSize: "1.02rem" }}>
+              <span style={{ marginRight: 7, fontSize: 19 }}>❌</span>
+              {fullResult.error}
+            </div>
+          )}
+          {fullResult.latex && (
+            <div className="mt-3 card bg-light shadow-sm" style={{ borderRadius: 11, padding: 12 }}>
+              <div className="fw-bold mb-2 text-primary">Derivative Result:</div>
+              <BlockMath>{fullResult.latex}</BlockMath>
+            </div>
+          )}
+        </div>
+      )}
+    </form>
   );
 
   // Tab selectors at the top
@@ -240,7 +363,6 @@ function NormalDifferentialPanel({ onBack }) {
       </h2>
       {/* Tab selectors */}
       {tabSelectors}
-
       {/* Selected tab UI */}
       {option === "partial" ? partialUI : fullUI}
     </main>
