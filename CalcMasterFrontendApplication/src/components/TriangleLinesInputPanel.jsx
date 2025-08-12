@@ -7,6 +7,7 @@ import "nerdamer/Solve";
 import "nerdamer/Extra";
 import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
+import PlotlyLite from "./PlotlyLite";
 
 /**
  * PUBLIC_INTERFACE
@@ -16,6 +17,12 @@ import { BlockMath } from "react-katex";
  * (i.e., all pairs intersect, they are not pairwise parallel and not concurrent).
  * Prepares normalized data for subsequent processing: line coefficients Ax + By + C = 0,
  * slopes/intercepts, and intersection points and triangle area.
+ *
+ * Additionally, when a valid triangle is formed, this component plots on a single Plotly graph:
+ *  - The three lines (extended across the view)
+ *  - The triangle perimeter
+ *  - The incircle and circumcircle (if defined)
+ *  - The vertices and centers with labels
  *
  * Props:
  *  - onBack: function to go back to previous screen
@@ -31,7 +38,11 @@ import { BlockMath } from "react-katex";
  *    },
  *    triangle: { vertices: [{x,y},{x,y},{x,y}], area },
  *    validTriangle: boolean,
- *    issues: string[]
+ *    issues: string[],
+ *    circles: {
+ *      incircle: {center:{x,y}, radius:r} | null,
+ *      circumcircle: {center:{x,y}, radius:R} | null
+ *    }
  *  }
  */
 // PUBLIC_INTERFACE
@@ -217,14 +228,6 @@ function TriangleLinesInputPanel({ onBack }) {
         return;
       }
 
-      // Concurrency check: ensure not all points the same (or nearly)
-      const d12_23 =
-        Math.hypot(P12.x - P23.x, P12.y - P23.y);
-      const d23_31 =
-        Math.hypot(P23.x - P31.x, P23.y - P31.y);
-      const d31_12 =
-        Math.hypot(P31.x - P12.x, P31.y - P12.y);
-
       // Compute area to detect degeneracy (concurrent or near-collinear)
       const area = areaTriangle(P12, P23, P31);
       const validTriangle = area > 1e-10;
@@ -263,18 +266,18 @@ function TriangleLinesInputPanel({ onBack }) {
         const xa = A.x, ya = A.y;
         const xb = B.x, yb = B.y;
         const xc = C.x, yc = C.y;
-        const D = 2 * (xa * (yb - yc) + xb * (yc - ya) + xc * (ya - yb));
+        const DD = 2 * (xa * (yb - yc) + xb * (yc - ya) + xc * (ya - yb));
         let circumcenter = null;
         let circumradius = null;
-        if (Math.abs(D) > EPS) {
+        if (Math.abs(DD) > EPS) {
           const Ux =
             ((xa * xa + ya * ya) * (yb - yc) +
               (xb * xb + yb * yb) * (yc - ya) +
-              (xc * xc + yc * yc) * (ya - yb)) / D;
+              (xc * xc + yc * yc) * (ya - yb)) / DD;
           const Uy =
             ((xa * xa + ya * ya) * (xc - xb) +
               (xb * xb + yb * yb) * (xa - xc) +
-              (xc * xc + yc * yc) * (xb - xa)) / D;
+              (xc * xc + yc * yc) * (xb - xa)) / DD;
           circumcenter = { x: Ux, y: Uy };
           circumradius = Math.hypot(Ux - xa, Uy - ya);
         } else {
@@ -307,6 +310,222 @@ function TriangleLinesInputPanel({ onBack }) {
     }
   };
 
+  /**
+   * Build Plotly figure specification for the current prepared data.
+   * Returns { data, layout, config } or null if not plottable.
+   */
+  function buildPlotSpec(prep) {
+    if (!prep || !prep.validTriangle || !prep.triangle || !prep.intersections) return null;
+
+    const { lines, intersections, triangle, circles } = prep;
+    const P12 = intersections.L12;
+    const P23 = intersections.L23;
+    const P31 = intersections.L31;
+    if (!P12 || !P23 || !P31) return null;
+
+    // Points to determine ranges
+    const points = [P12, P23, P31];
+    if (circles?.incircle) {
+      const c = circles.incircle.center;
+      points.push(c);
+      // push extremes for range computation
+      points.push({ x: c.x + circles.incircle.radius, y: c.y });
+      points.push({ x: c.x - circles.incircle.radius, y: c.y });
+      points.push({ x: c.x, y: c.y + circles.incircle.radius });
+      points.push({ x: c.x, y: c.y - circles.incircle.radius });
+    }
+    if (circles?.circumcircle) {
+      const c = circles.circumcircle.center;
+      points.push(c);
+      points.push({ x: c.x + circles.circumcircle.radius, y: c.y });
+      points.push({ x: c.x - circles.circumcircle.radius, y: c.y });
+      points.push({ x: c.x, y: c.y + circles.circumcircle.radius });
+      points.push({ x: c.x, y: c.y - circles.circumcircle.radius });
+    }
+
+    let minX = Math.min(...points.map((p) => p.x));
+    let maxX = Math.max(...points.map((p) => p.x));
+    let minY = Math.min(...points.map((p) => p.y));
+    let maxY = Math.max(...points.map((p) => p.y));
+    if (!Number.isFinite(minX) || !Number.isFinite(maxX) || minX === maxX) {
+      minX = -1; maxX = 1;
+    }
+    if (!Number.isFinite(minY) || !Number.isFinite(maxY) || minY === maxY) {
+      minY = -1; maxY = 1;
+    }
+    // add padding
+    const padX = 0.15 * (maxX - minX || 1);
+    const padY = 0.15 * (maxY - minY || 1);
+    minX -= padX; maxX += padX;
+    minY -= padY; maxY += padY;
+
+    // Utility to generate line endpoints across current range
+    const lineEndpoints = (L) => {
+      const { A, B, C } = L;
+      if (Math.abs(B) < EPS) {
+        // Vertical line: A x + C = 0 -> x = -C/A
+        const x = -C / A;
+        return { x: [x, x], y: [minY, maxY] };
+        }
+      // y = -(A*x + C)/B
+      const x1 = minX;
+      const x2 = maxX;
+      const y1 = (-(A * x1 + C)) / B;
+      const y2 = (-(A * x2 + C)) / B;
+      return { x: [x1, x2], y: [y1, y2] };
+    };
+
+    // Build triangle perimeter
+    const triX = [P12.x, P23.x, P31.x, P12.x];
+    const triY = [P12.y, P23.y, P31.y, P12.y];
+
+    // Build circle parametric points
+    const buildCircleTrace = (center, radius, name, color, dash) => {
+      const N = 256;
+      const theta = Array.from({ length: N + 1 }, (_, k) => (2 * Math.PI * k) / N);
+      const x = theta.map((t) => center.x + radius * Math.cos(t));
+      const y = theta.map((t) => center.y + radius * Math.sin(t));
+      return {
+        x,
+        y,
+        mode: "lines",
+        name,
+        line: { color, dash: dash || "solid", width: 2 },
+        hovertemplate: `${name}<extra></extra>`,
+        type: "scatter",
+      };
+    };
+
+    // Traces
+    const traces = [];
+
+    // Lines L1..L3 as extended dashed lines
+    const lineColors = ["#7f7f7f", "#9d9d9d", "#b5b5b5"];
+    lines.forEach((L, i) => {
+      const ep = lineEndpoints(L);
+      traces.push({
+        x: ep.x,
+        y: ep.y,
+        mode: "lines",
+        name: `L${i + 1}`,
+        line: { color: lineColors[i] || "#aaa", dash: "dash", width: 1.5 },
+        hovertemplate: `Line L${i + 1}<extra></extra>`,
+        type: "scatter",
+      });
+    });
+
+    // Triangle fill/perimeter
+    traces.push({
+      x: triX,
+      y: triY,
+      mode: "lines",
+      name: "Triangle",
+      line: { color: "#1f77b4", width: 3 },
+      fill: "toself",
+      fillcolor: "rgba(31,119,180,0.08)",
+      hovertemplate: "Triangle<extra></extra>",
+      type: "scatter",
+    });
+
+    // Vertices with labels
+    traces.push({
+      x: [P12.x, P23.x, P31.x],
+      y: [P12.y, P23.y, P31.y],
+      mode: "markers+text",
+      name: "Vertices",
+      text: ["P12", "P23", "P31"],
+      textposition: "top center",
+      marker: { color: "#d62728", size: 9, symbol: "circle" },
+      hovertemplate: "%{text} (%{x:.4g}, %{y:.4g})<extra></extra>",
+      type: "scatter",
+    });
+
+    // Incircle
+    if (circles?.incircle) {
+      traces.push(
+        buildCircleTrace(
+          circles.incircle.center,
+          circles.incircle.radius,
+          "Incircle",
+          "#2ca02c",
+          "solid"
+        )
+      );
+      // Incenter point I
+      traces.push({
+        x: [circles.incircle.center.x],
+        y: [circles.incircle.center.y],
+        mode: "markers+text",
+        name: "Incenter I",
+        text: ["I"],
+        textposition: "top center",
+        marker: { color: "#2ca02c", size: 10, symbol: "diamond" },
+        hovertemplate: "I (%{x:.4g}, %{y:.4g})<extra></extra>",
+        type: "scatter",
+      });
+    }
+
+    // Circumcircle
+    if (circles?.circumcircle) {
+      traces.push(
+        buildCircleTrace(
+          circles.circumcircle.center,
+          circles.circumcircle.radius,
+          "Circumcircle",
+          "#9467bd",
+          "dot"
+        )
+      );
+      // Circumcenter point O
+      traces.push({
+        x: [circles.circumcircle.center.x],
+        y: [circles.circumcircle.center.y],
+        mode: "markers+text",
+        name: "Circumcenter O",
+        text: ["O"],
+        textposition: "top center",
+        marker: { color: "#9467bd", size: 10, symbol: "square" },
+        hovertemplate: "O (%{x:.4g}, %{y:.4g})<extra></extra>",
+        type: "scatter",
+      });
+    }
+
+    const layout = {
+      title: {
+        text: "Triangle, Incircle, and Circumcircle",
+        font: { size: 16 },
+      },
+      margin: { l: 36, r: 12, t: 48, b: 36 },
+      xaxis: {
+        range: [minX, maxX],
+        zeroline: true,
+        zerolinecolor: "#e0e0e0",
+        showgrid: true,
+        gridcolor: "#f0f0f0",
+      },
+      yaxis: {
+        range: [minY, maxY],
+        zeroline: true,
+        zerolinecolor: "#e0e0e0",
+        showgrid: true,
+        gridcolor: "#f0f0f0",
+        scaleanchor: "x", // equal aspect
+        scaleratio: 1,
+      },
+      legend: {
+        orientation: "h",
+        y: -0.15,
+      },
+      hovermode: "closest",
+      paper_bgcolor: "white",
+      plot_bgcolor: "white",
+    };
+
+    const config = { responsive: true, displaylogo: false };
+
+    return { data: traces, layout, config };
+  }
+
   const renderPrepared = () => {
     if (!prepared && !error) return null;
 
@@ -327,10 +546,12 @@ function TriangleLinesInputPanel({ onBack }) {
     if (!prepared) return null;
 
     const { lines, intersections, triangle, validTriangle, issues } = prepared;
+    const plotSpec = buildPlotSpec(prepared);
+
     return (
       <div
         className="card shadow-sm my-4 animate__animated animate__fadeInUp"
-        style={{ borderRadius: 13, maxWidth: 720, margin: "0 auto", background: "#fcfdff" }}
+        style={{ borderRadius: 13, maxWidth: 920, margin: "0 auto", background: "#fcfdff" }}
         tabIndex={0}
         aria-live="polite"
       >
@@ -407,7 +628,7 @@ function TriangleLinesInputPanel({ onBack }) {
 
           {/* Circles summary */}
           {prepared?.circles && (
-            <div className="mb-1">
+            <div className="mb-3">
               <div className="fw-semibold">Circle properties:</div>
               {prepared.circles.incircle ? (
                 <div className="small text-muted">
@@ -432,9 +653,28 @@ function TriangleLinesInputPanel({ onBack }) {
             </div>
           )}
 
-          <div className="small text-muted mt-2">
-            This prepared data can be used to compute the incircle and circumcircle and plot the figure.
-          </div>
+          {/* Plot */}
+          {plotSpec ? (
+            <div className="mt-3">
+              <div className="fw-semibold mb-2">Graphical depiction:</div>
+              <div style={{ width: "100%", minHeight: 420 }}>
+                <PlotlyLite
+                  data={plotSpec.data}
+                  layout={plotSpec.layout}
+                  config={plotSpec.config}
+                  style={{ width: "100%", height: "100%" }}
+                  useResizeHandler={true}
+                />
+              </div>
+              <div className="form-text mt-2">
+                The three lines (L1, L2, L3), triangle edges, incircle (I) and circumcircle (O) are shown with labels.
+              </div>
+            </div>
+          ) : (
+            <div className="small text-muted mt-2">
+              A valid triangle is required to render the plot.
+            </div>
+          )}
         </div>
       </div>
     );
