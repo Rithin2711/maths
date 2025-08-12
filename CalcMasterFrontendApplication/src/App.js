@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
 import MathInputPanel from "./components/MathInputPanel";
@@ -12,7 +12,9 @@ import NormalIntegrationPanel from "./components/NormalIntegrationPanel";
 import AreaOfFigurePanel from "./components/AreaOfFigurePanel";
 import VolumeTripleIntegralPanel from "./components/VolumeTripleIntegralPanel";
 import NormalDifferentialPanel from "./components/NormalDifferentialPanel";
-import TangentAtPointPanel from "./components/TangentAtPointPanel";
+const TangentAtPointPanelLazy = lazy(() => import("./components/TangentAtPointPanel"));
+const TangentToCirclePanelLazy = lazy(() => import("./components/TangentToCirclePanel"));
+const TangentToEllipsePanelLazy = lazy(() => import("./components/TangentToEllipsePanel"));
 import LimitPanel from "./components/LimitPanel";
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
 
@@ -240,11 +242,57 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <TangentAtPointPanel
-          onBack={() => {
-            setDifferentialSubOption(null);
-          }}
-        />
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <TangentAtPointPanelLazy
+            onBack={() => {
+              setDifferentialSubOption(null);
+            }}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+  // --- NEW: Tangent to Circle Panel ---
+  if (homeMode === "differential" && differentialSubOption === "tangent-circle") {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <TangentToCirclePanelLazy
+            onBack={() => {
+              setDifferentialSubOption(null);
+            }}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+  // --- NEW: Tangent to Ellipse Panel ---
+  if (homeMode === "differential" && differentialSubOption === "tangent-ellipse") {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <TangentToEllipsePanelLazy
+            onBack={() => {
+              setDifferentialSubOption(null);
+            }}
+          />
+        </Suspense>
       </div>
     );
   }

@@ -30,6 +30,20 @@ function DifferentialOptionsPage({ onSelectOption, onBack }) {
       color: "#006eff",
       emoji: "📏",
     },
+    {
+      key: "tangent-circle",
+      label: "Tangent to Circle",
+      desc: "Get the tangent line to a circle at a specified point.",
+      color: "#0d6efd",
+      emoji: "⚪",
+    },
+    {
+      key: "tangent-ellipse",
+      label: "Tangent to Ellipse",
+      desc: "Get the tangent line to an ellipse at a specified point.",
+      color: "#6f42c1",
+      emoji: "⬭",
+    },
   ];
   return (
     <main className="d-flex flex-column align-items-center justify-content-center pt-4 pb-4" style={{ minHeight: "98vh" }}>
