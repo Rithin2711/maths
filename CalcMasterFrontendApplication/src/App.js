@@ -15,6 +15,7 @@ const NormalDifferentialPanelLazy = lazy(() => import("./components/NormalDiffer
 const TangentAtPointPanelLazy = lazy(() => import("./components/TangentAtPointPanel"));
 const TangentToCirclePanelLazy = lazy(() => import("./components/TangentToCirclePanel"));
 const TangentToEllipsePanelLazy = lazy(() => import("./components/TangentToEllipsePanel"));
+const TriangleLinesInputPanelLazy = lazy(() => import("./components/TriangleLinesInputPanel"));
 const LimitPanelLazy = lazy(() => import("./components/LimitPanel"));
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
 
@@ -303,6 +304,29 @@ function App() {
         </button>
         <Suspense fallback={<div className="container p-4">Loading…</div>}>
           <TangentToEllipsePanelLazy
+            onBack={() => {
+              setDifferentialSubOption(null);
+            }}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
+  // --- NEW: Triangle from 3 Lines Panel ---
+  if (homeMode === "differential" && differentialSubOption === "triangle-3lines") {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <TriangleLinesInputPanelLazy
             onBack={() => {
               setDifferentialSubOption(null);
             }}

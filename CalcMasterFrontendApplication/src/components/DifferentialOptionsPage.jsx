@@ -14,7 +14,7 @@ function DifferentialOptionsPage({ onSelectOption, onBack }) {
       label: "Normal Differential",
       desc: "Find the derivative of a function.",
       color: "#e87a41",
-      emoji: "𝑑/𝑑𝑥",
+      emoji: "𝐑/𝐑𝑥",
     },
     {
       key: "diffeq",
@@ -42,7 +42,14 @@ function DifferentialOptionsPage({ onSelectOption, onBack }) {
       label: "Tangent to Ellipse",
       desc: "Get the tangent line to an ellipse at a specified point.",
       color: "#6f42c1",
-      emoji: "⬭",
+      emoji: "⭭",
+    },
+    {
+      key: "triangle-3lines",
+      label: "Triangle from 3 Lines",
+      desc: "Enter three lines to form a triangle; prepares data for circles/plot.",
+      color: "#212529",
+      emoji: "🔺",
     },
   ];
   return (
