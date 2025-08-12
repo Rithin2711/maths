@@ -52,11 +52,9 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
           </div>
         )}
         {!error && resultLatex && (
-          <BlockMath
-            math={resultLatex}
-            aria-label="Math result (LaTeX)"
-            className="display-6 animate__animated animate__pulse"
-          />
+          <div className="display-6 animate__animated animate__pulse" aria-label="Math result (LaTeX)">
+            <BlockMath>{resultLatex}</BlockMath>
+          </div>
         )}
         {!error && raw && (
           <pre

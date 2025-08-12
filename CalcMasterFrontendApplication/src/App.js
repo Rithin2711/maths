@@ -5,17 +5,17 @@ import MathInputPanel from "./components/MathInputPanel";
 import OperationSelector from "./components/OperationSelector";
 import ValidationFeedback from "./components/ValidationFeedback";
 import ResultsPanel from "./components/ResultsPanel";
-import HomePage from "./components/HomePage";
-import IntegralOptionsPage from "./components/IntegralOptionsPage";
-import DifferentialOptionsPage from "./components/DifferentialOptionsPage";
-import NormalIntegrationPanel from "./components/NormalIntegrationPanel";
-import AreaOfFigurePanel from "./components/AreaOfFigurePanel";
-import VolumeTripleIntegralPanel from "./components/VolumeTripleIntegralPanel";
-import NormalDifferentialPanel from "./components/NormalDifferentialPanel";
+const HomePageLazy = lazy(() => import("./components/HomePage"));
+const IntegralOptionsPageLazy = lazy(() => import("./components/IntegralOptionsPage"));
+const DifferentialOptionsPageLazy = lazy(() => import("./components/DifferentialOptionsPage"));
+const NormalIntegrationPanelLazy = lazy(() => import("./components/NormalIntegrationPanel"));
+const AreaOfFigurePanelLazy = lazy(() => import("./components/AreaOfFigurePanel"));
+const VolumeTripleIntegralPanelLazy = lazy(() => import("./components/VolumeTripleIntegralPanel"));
+const NormalDifferentialPanelLazy = lazy(() => import("./components/NormalDifferentialPanel"));
 const TangentAtPointPanelLazy = lazy(() => import("./components/TangentAtPointPanel"));
 const TangentToCirclePanelLazy = lazy(() => import("./components/TangentToCirclePanel"));
 const TangentToEllipsePanelLazy = lazy(() => import("./components/TangentToEllipsePanel"));
-import LimitPanel from "./components/LimitPanel";
+const LimitPanelLazy = lazy(() => import("./components/LimitPanel"));
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
 
 // PUBLIC_INTERFACE
@@ -87,7 +87,9 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <HomePage onSelectMode={handleHomeSelect} />
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <HomePageLazy onSelectMode={handleHomeSelect} />
+        </Suspense>
       </div>
     );
   }
@@ -102,10 +104,12 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <IntegralOptionsPage
-          onSelectOption={handleIntegralOption}
-          onBack={handleBackFromSubSelector}
-        />
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <IntegralOptionsPageLazy
+            onSelectOption={handleIntegralOption}
+            onBack={handleBackFromSubSelector}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -121,11 +125,13 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <NormalIntegrationPanel
-          onBack={() => {
-            setIntegralSubOption(null);
-          }}
-        />
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <NormalIntegrationPanelLazy
+            onBack={() => {
+              setIntegralSubOption(null);
+            }}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -141,11 +147,13 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <AreaOfFigurePanel
-          onBack={() => {
-            setIntegralSubOption(null);
-          }}
-        />
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <AreaOfFigurePanelLazy
+            onBack={() => {
+              setIntegralSubOption(null);
+            }}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -161,14 +169,17 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <VolumeTripleIntegralPanel
-          onBack={() => {
-            setIntegralSubOption(null);
-          }}
-        />
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <VolumeTripleIntegralPanelLazy
+            onBack={() => {
+              setIntegralSubOption(null);
+            }}
+          />
+        </Suspense>
       </div>
     );
   }
+  const DifferentialEquationSolverPanelLazy = lazy(() => import("./components/DifferentialEquationSolverPanel"));
   if (homeMode === "differential" && !differentialSubOption) {
     return (
       <div className={`App bg-${theme}`}>
@@ -180,10 +191,12 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <DifferentialOptionsPage
-          onSelectOption={handleDifferentialOption}
-          onBack={handleBackFromSubSelector}
-        />
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <DifferentialOptionsPageLazy
+            onSelectOption={handleDifferentialOption}
+            onBack={handleBackFromSubSelector}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -200,18 +213,18 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <NormalDifferentialPanel
-          onBack={() => {
-            setDifferentialSubOption(null);
-          }}
-        />
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <NormalDifferentialPanelLazy
+            onBack={() => {
+              setDifferentialSubOption(null);
+            }}
+          />
+        </Suspense>
       </div>
     );
   }
   // --- NEW: Differential Equation Solver Panel ---
   if (homeMode === "differential" && differentialSubOption === "diffeq") {
-    // Lazy-load to avoid initial bundle size increase
-    const DifferentialEquationSolverPanel = require("./components/DifferentialEquationSolverPanel").default;
     return (
       <div className={`App bg-${theme}`}>
         <button
@@ -222,11 +235,13 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <DifferentialEquationSolverPanel
-          onBack={() => {
-            setDifferentialSubOption(null);
-          }}
-        />
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <DifferentialEquationSolverPanelLazy
+            onBack={() => {
+              setDifferentialSubOption(null);
+            }}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -311,9 +326,9 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <LimitPanel
-          onBack={() => setHomeMode(null)}
-        />
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <LimitPanelLazy onBack={() => setHomeMode(null)} />
+        </Suspense>
       </div>
     );
   }

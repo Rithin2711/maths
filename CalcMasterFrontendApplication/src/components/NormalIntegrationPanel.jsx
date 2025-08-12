@@ -5,6 +5,8 @@ import "nerdamer/Calculus";
 import "nerdamer/Algebra";
 import "nerdamer/Solve";
 import "nerdamer/Extra";
+import "katex/dist/katex.min.css";
+import { BlockMath } from "react-katex";
 
 /**
  * PUBLIC_INTERFACE
@@ -101,7 +103,7 @@ function NormalIntegrationPanel({ onBack }) {
       let resultRaw = "";
       let isIndefinite = false;
 
-      if ((lower.trim() && upper.trim())) {
+      if (lower.trim() && upper.trim()) {
         // Definite integral: ∫_a^b f(x) dx = F(b) - F(a)
         let symIntegral, latexIntegral;
         try {
@@ -182,19 +184,21 @@ function NormalIntegrationPanel({ onBack }) {
       }
 
       display = (
-        <div style={{
-          display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "flex-start",
-          fontSize: "1.18rem", marginTop: 6, marginBottom: 6
-        }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            fontSize: "1.18rem",
+            marginTop: 6,
+            marginBottom: 6
+          }}
+        >
           {/* Integral LaTeX */}
-          <span
-            style={{ fontFamily: "serif, math", color: "#27395a", marginRight: 10 }}
-            dangerouslySetInnerHTML={{
-              __html: window.katex
-                ? window.katex.renderToString(left, { throwOnError: false, displayMode: true })
-                : left
-            }}
-          />
+          <div style={{ marginRight: 10 }}>
+            <BlockMath>{left}</BlockMath>
+          </div>
           {/* Equals sign */}
           <span style={{ fontSize: "1.26rem", fontWeight: 450, margin: "0 6px", color: "#59513a" }}>{eq}</span>
           {/* Numeric result */}
@@ -210,7 +214,9 @@ function NormalIntegrationPanel({ onBack }) {
               boxShadow: "0 1.5px 5px 0 #d9f9e5a5"
             }}
             data-testid="definite-integral-result"
-          >{right}</span>
+          >
+            {right}
+          </span>
         </div>
       );
     }
@@ -220,7 +226,7 @@ function NormalIntegrationPanel({ onBack }) {
         className="card shadow-sm mt-4 mb-2 animate__animated animate__fadeInUp"
         style={{
           borderRadius: 13,
-          maxWidth: 440,
+          maxWidth: 540,
           margin: "0 auto",
           background: "#fffefb",
           border: result.error ? "2px solid #ffe1e1" : "2px solid #d0e6f6"
@@ -230,32 +236,41 @@ function NormalIntegrationPanel({ onBack }) {
       >
         <div className="card-body">
           <h3 className="card-title fs-6 fw-bold mb-2">{result.error ? "Error" : "Result"}</h3>
+
           {/* For definite integrals, render the integral and numeric result as specified */}
           {!result.error && !result.isIndefinite && result.latex && display}
+
           {/* For indefinite integrals, show KaTeX and +C */}
           {result.isIndefinite && result.latex && (
             <div className="mb-2" style={{ fontSize: "1.17rem", display: "flex", alignItems: "center" }}>
+              <div>
+                <BlockMath>{result.latex}</BlockMath>
+              </div>
               <span
-                style={{ fontFamily: "serif, math", color: "#27395a" }}
-                dangerouslySetInnerHTML={{
-                  __html: window.katex
-                    ? window.katex.renderToString(result.latex, { throwOnError: false })
-                    : result.latex
+                style={{
+                  marginLeft: 7,
+                  color: "#e87a41",
+                  fontWeight: 600,
+                  fontSize: "1.11em",
+                  fontFamily: "inherit"
                 }}
-              />
-              <span style={{ marginLeft: 7, color: "#e87a41", fontWeight: 600, fontSize: "1.11em", fontFamily: "inherit" }}>+ C</span>
+              >
+                + C
+              </span>
             </div>
           )}
-          {/* If for any reason 'latex' is not present, fallback to plaintext */}
-          {result.plaintext && (!result.latex || result.error) && (
-            <pre
-              className="bg-light px-2 py-1 rounded border border-1 mt-1"
-              style={{ fontFamily: "JetBrains Mono, monospace", fontSize: ".97rem" }}
-            >{result.plaintext}</pre>
+
+          {/* Always show plaintext summary below for accessibility/tests */}
+          {!result.error && result.plaintext && (
+            <div className="mt-2 small text-muted" aria-label="Plain summary">
+              {result.plaintext}
+            </div>
           )}
+
           {result.error && (
             <div className="alert alert-danger mt-2 py-1 px-2" style={{ borderRadius: 7, fontSize: "1rem" }}>
-              <span style={{ fontSize: "1.22rem", marginRight: 7 }}>❌</span>{result.error}
+              <span style={{ fontSize: "1.22rem", marginRight: 7 }}>❌</span>
+              {result.error}
             </div>
           )}
         </div>
@@ -306,7 +321,7 @@ function NormalIntegrationPanel({ onBack }) {
             Integrand Expression
           </label>
           <div className="d-flex flex-wrap gap-2 mb-1">
-            {QUICK_SYMBOLS.map(symbol =>
+            {QUICK_SYMBOLS.map(symbol => (
               <button
                 type="button"
                 key={symbol.label}
@@ -319,7 +334,7 @@ function NormalIntegrationPanel({ onBack }) {
               >
                 {symbol.label}
               </button>
-            )}
+            ))}
           </div>
           <input
             ref={inputRef}
@@ -354,7 +369,11 @@ function NormalIntegrationPanel({ onBack }) {
             type="submit"
             className="btn btn-primary"
             style={{ borderRadius: 10, fontWeight: 600 }}
-            disabled={isSubmitting || !expr.trim() || ((lower.trim() && !upper.trim()) || (!lower.trim() && upper.trim()))}
+            disabled={
+              isSubmitting ||
+              !expr.trim() ||
+              ((lower.trim() && !upper.trim()) || (!lower.trim() && upper.trim()))
+            }
             tabIndex={0}
             aria-label="Integrate"
           >

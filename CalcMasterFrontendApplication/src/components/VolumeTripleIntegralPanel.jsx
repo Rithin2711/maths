@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import Plot from "react-plotly.js";
+import Plot from "./PlotlyLite";
 import PropTypes from "prop-types";
 import { create, all } from "mathjs";
 import "katex/dist/katex.min.css";

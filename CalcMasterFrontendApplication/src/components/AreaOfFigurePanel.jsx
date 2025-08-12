@@ -7,7 +7,7 @@ import "nerdamer/Solve";
 import "nerdamer/Extra";
 import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
-import Plot from "react-plotly.js";
+import Plot from "./PlotlyLite";
 import { create, all } from "mathjs";
 
 // PUBLIC_INTERFACE

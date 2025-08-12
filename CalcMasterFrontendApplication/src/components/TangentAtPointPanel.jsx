@@ -1,10 +1,9 @@
-import React, { useState, useRef, lazy, Suspense } from "react";
+import React, { useState, useRef } from "react";
 import nerdamer from "nerdamer";
 import PropTypes from "prop-types";
 import { BlockMath } from "react-katex";
 import "katex/dist/katex.min.css";
-// Lazy-load Plotly to reduce initial bundle weight
-const Plot = lazy(() => import("react-plotly.js"));
+import Plot from "./PlotlyLite";
 
 /**
  * PUBLIC_INTERFACE
@@ -268,15 +267,13 @@ function TangentAtPointPanel({ onBack }) {
           {/* Plot: curve, tangent, point */}
           {result.tangentData && (
             <div className="mb-1 mt-2" aria-label="Curve and tangent graph visualization">
-              <Suspense fallback={<div className="text-muted small">Loading plot…</div>}>
-                <Plot
-                  data={result.tangentData.data}
-                  layout={result.tangentData.layout}
-                  config={result.tangentData.config}
-                  style={{ width: "100%", height: "360px", minHeight: 250 }}
-                  useResizeHandler={true}
-                />
-              </Suspense>
+              <Plot
+                data={result.tangentData.data}
+                layout={result.tangentData.layout}
+                config={result.tangentData.config}
+                style={{ width: "100%", height: "360px", minHeight: 250 }}
+                useResizeHandler={true}
+              />
               <div className="mt-1 small text-muted" aria-live="polite">
                 <span style={{ color: "#3587fb", fontWeight: 600 }}>Blue</span>: curve 
                 <span style={{ color: "#e87a41", fontWeight: 600 }}>Orange dashed</span>: tangent 
