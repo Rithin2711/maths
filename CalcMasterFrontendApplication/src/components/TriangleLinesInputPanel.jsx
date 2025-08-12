@@ -233,10 +233,70 @@ function TriangleLinesInputPanel({ onBack }) {
         issues.push("The three lines are concurrent or nearly concurrent; no triangle is formed.");
       }
 
+      // If triangle valid, compute incircle and circumcircle
+      let circles = null;
+      if (validTriangle) {
+        // Label vertices consistently:
+        // A = intersection of L2 & L3 (P23), B = intersection of L3 & L1 (P31), C = intersection of L1 & L2 (P12)
+        const A = P23, B = P31, C = P12;
+
+        const dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+
+        // Side lengths opposite respective vertices
+        const a = dist(B, C); // opposite A
+        const b = dist(C, A); // opposite B
+        const c = dist(A, B); // opposite C
+        const perimeter = a + b + c;
+
+        // Incenter (weighted by side lengths) and inradius r = 2*Area / perimeter
+        let incenter = null;
+        let inradius = null;
+        if (perimeter > EPS) {
+          const Ix = (a * A.x + b * B.x + c * C.x) / perimeter;
+          const Iy = (a * A.y + b * B.y + c * C.y) / perimeter;
+          incenter = { x: Ix, y: Iy };
+          inradius = (2 * area) / perimeter;
+        }
+
+        // Circumcenter via coordinate formula
+        // D = 2*(xa*(yb - yc) + xb*(yc - ya) + xc*(ya - yb))
+        const xa = A.x, ya = A.y;
+        const xb = B.x, yb = B.y;
+        const xc = C.x, yc = C.y;
+        const D = 2 * (xa * (yb - yc) + xb * (yc - ya) + xc * (ya - yb));
+        let circumcenter = null;
+        let circumradius = null;
+        if (Math.abs(D) > EPS) {
+          const Ux =
+            ((xa * xa + ya * ya) * (yb - yc) +
+              (xb * xb + yb * yb) * (yc - ya) +
+              (xc * xc + yc * yc) * (ya - yb)) / D;
+          const Uy =
+            ((xa * xa + ya * ya) * (xc - xb) +
+              (xb * xb + yb * yb) * (xa - xc) +
+              (xc * xc + yc * yc) * (xb - xa)) / D;
+          circumcenter = { x: Ux, y: Uy };
+          circumradius = Math.hypot(Ux - xa, Uy - ya);
+        } else {
+          issues.push("Circumcenter is numerically unstable for this configuration.");
+        }
+
+        circles = {
+          incircle: incenter && Number.isFinite(inradius) ? { center: incenter, radius: inradius } : null,
+          circumcircle:
+            circumcenter && Number.isFinite(circumradius)
+              ? { center: circumcenter, radius: circumradius }
+              : null,
+          perimeter,
+          sideLengths: { a, b, c },
+        };
+      }
+
       setPrepared({
         lines: [L1, L2, L3],
         intersections: { L12: P12, L23: P23, L31: P31 },
         triangle: { vertices: [P12, P23, P31], area },
+        circles,
         validTriangle,
         issues,
       });
@@ -342,6 +402,33 @@ function TriangleLinesInputPanel({ onBack }) {
               <div className="small text-muted">
                 Area = <code>{formatNumber(triangle.area)}</code>
               </div>
+            </div>
+          )}
+
+          {/* Circles summary */}
+          {prepared?.circles && (
+            <div className="mb-1">
+              <div className="fw-semibold">Circle properties:</div>
+              {prepared.circles.incircle ? (
+                <div className="small text-muted">
+                  Incircle center I = (
+                  <code>{formatNumber(prepared.circles.incircle.center.x)}</code>,{" "}
+                  <code>{formatNumber(prepared.circles.incircle.center.y)}</code>)
+                  , r = <code>{formatNumber(prepared.circles.incircle.radius)}</code>
+                </div>
+              ) : (
+                <div className="small text-muted">Incircle: unavailable</div>
+              )}
+              {prepared.circles.circumcircle ? (
+                <div className="small text-muted">
+                  Circumcenter O = (
+                  <code>{formatNumber(prepared.circles.circumcircle.center.x)}</code>,{" "}
+                  <code>{formatNumber(prepared.circles.circumcircle.center.y)}</code>)
+                  , R = <code>{formatNumber(prepared.circles.circumcircle.radius)}</code>
+                </div>
+              ) : (
+                <div className="small text-muted">Circumcircle: unavailable</div>
+              )}
             </div>
           )}
 
