@@ -7,6 +7,7 @@ import "nerdamer/Algebra";
 import "nerdamer/Calculus";
 import "nerdamer/Solve";
 import "nerdamer/Extra";
+import Plot from "./PlotlyLite";
 
 /**
  * PUBLIC_INTERFACE
@@ -20,6 +21,11 @@ import "nerdamer/Extra";
  * and then displays the tangent equation in two forms with KaTeX:
  *  1) Point form: (x1-h)(x-h) + (y1-k)(y-k) = r^2
  *  2) Expanded linear form: A x + B y + C = 0
+ *
+ * Additionally, renders an interactive graph using Plotly showing:
+ *  - The circle
+ *  - The tangent line
+ *  - The point of tangency and the center
  *
  * @param {function} onBack - Callback to navigate back
  */
@@ -40,6 +46,7 @@ function TangentToCirclePanel({ onBack }) {
     latexPointForm: "",
     latexLinearForm: "",
     numericSummary: "",
+    plotData: null,
   });
 
   // Helpers
@@ -59,7 +66,7 @@ function TangentToCirclePanel({ onBack }) {
     // If close to integer, display integer
     if (Math.abs(val - Math.round(val)) < 1e-10) return String(Math.round(val));
     // Otherwise reasonable precision
-    return Number(val).toPrecision(8).replace(/\.?0+$/,"");
+    return Number(val).toPrecision(8).replace(/\.?0+$/, "");
   }
 
   const handleSubmit = (e) => {
@@ -72,6 +79,7 @@ function TangentToCirclePanel({ onBack }) {
       latexPointForm: "",
       latexLinearForm: "",
       numericSummary: "",
+      plotData: null,
     });
 
     try {
@@ -116,12 +124,138 @@ function TangentToCirclePanel({ onBack }) {
 
       const latexLinearForm =
         `\\text{Expanded linear form: }\\; ` +
-        `\\boxed{ ${numLatex(A)}\\,x + ${numLatex(B)}\\,y ${C >= 0 ? "+ " : "- "}${numLatex(Math.abs(C))} = 0 }`;
+        `\\boxed{ ${numLatex(A)}\\,x + ${numLatex(B)}\\,y ${C >= 0 ? "+ " : "- "}${numLatex(
+          Math.abs(C)
+        )} = 0 }`;
 
       const numericSummary =
         `A = ${numLatex(A)},\\; B = ${numLatex(B)},\\; C = ${numLatex(C)};\\; \\text{ i.e., } ${numLatex(
           A
         )}x + ${numLatex(B)}y ${C >= 0 ? "+ " : "- "}${numLatex(Math.abs(C))} = 0`;
+
+      // --- Build Plotly visualization ---
+      // Circle points
+      const n = 360;
+      const xc = new Array(n + 1);
+      const yc = new Array(n + 1);
+      for (let i = 0; i <= n; i++) {
+        const t = (2 * Math.PI * i) / n;
+        xc[i] = hNum + rNum * Math.cos(t);
+        yc[i] = kNum + rNum * Math.sin(t);
+      }
+
+      // View bounds with padding
+      const pad = Math.max(0.35 * rNum, 1);
+      let xMin = hNum - rNum - pad;
+      let xMax = hNum + rNum + pad;
+      let yMin = kNum - rNum - pad;
+      let yMax = kNum + rNum + pad;
+
+      // Tangent line points from Ax + By + C = 0
+      let xLine = [];
+      let yLine = [];
+      const EPS = 1e-12;
+      if (Math.abs(B) > EPS) {
+        xLine = [xMin, xMax];
+        yLine = xLine.map((x) => (-A * x - C) / B);
+      } else if (Math.abs(A) > EPS) {
+        // Vertical line x = -C/A
+        const xConst = -C / A;
+        xLine = [xConst, xConst];
+        yLine = [yMin, yMax];
+        // widen x-range to include the vertical line if out of [xMin, xMax]
+        xMin = Math.min(xMin, xConst - pad * 0.4);
+        xMax = Math.max(xMax, xConst + pad * 0.4);
+      } else {
+        // Degenerate line (should not happen): skip plotting the line
+        xLine = [];
+        yLine = [];
+      }
+
+      // Traces
+      const circleTrace = {
+        x: xc,
+        y: yc,
+        name: "Circle",
+        mode: "lines",
+        type: "scatter",
+        line: { color: "#4c6fff", width: 3 },
+        hoverlabel: { bgcolor: "#eef2ff", font: { color: "#2a3fb4" } },
+        showlegend: true,
+      };
+      const tangentTrace = {
+        x: xLine,
+        y: yLine,
+        name: "Tangent Line",
+        mode: "lines",
+        type: "scatter",
+        line: { color: "#e87a41", width: 3, dash: "dashdot" },
+        hoverlabel: { bgcolor: "#ffedcc", font: { color: "#a54a06" } },
+        showlegend: true,
+      };
+      const pointTrace = {
+        x: [xNum],
+        y: [yNum],
+        name: "Point of Tangency",
+        mode: "markers+text",
+        type: "scatter",
+        marker: {
+          color: "#31d07e",
+          size: 12,
+          line: { width: 2, color: "#2b7a4b" },
+          symbol: "circle",
+        },
+        text: ["(x₁, y₁)"],
+        textposition: "top center",
+        textfont: { color: "#2d7e52", size: 14, family: "inherit" },
+        showlegend: true,
+      };
+      const centerTrace = {
+        x: [hNum],
+        y: [kNum],
+        name: "Center",
+        mode: "markers",
+        type: "scatter",
+        marker: {
+          color: "#6c757d",
+          size: 10,
+          symbol: "x",
+          line: { width: 1, color: "#495057" },
+        },
+        showlegend: true,
+      };
+
+      const plotData = {
+        data: [circleTrace, tangentTrace, pointTrace, centerTrace],
+        layout: {
+          title: {
+            text: "Circle and Tangent",
+            font: { size: 20, family: "inherit" },
+            x: 0.5,
+            xref: "paper",
+          },
+          legend: { x: 1, y: 1, bgcolor: "#fff", bordercolor: "#e3e7ee" },
+          xaxis: { title: "x", range: [xMin, xMax], zeroline: true, showgrid: true },
+          yaxis: {
+            title: "y",
+            range: [yMin, yMax],
+            zeroline: true,
+            showgrid: true,
+            scaleanchor: "x", // keep aspect ratio for true circle
+            scaleratio: 1,
+          },
+          autosize: true,
+          margin: { t: 60, l: 50, r: 30, b: 50 },
+          paper_bgcolor: "#f9fbff",
+          plot_bgcolor: "#fafeff",
+          font: { family: "inherit", size: 15 },
+        },
+        config: {
+          responsive: true,
+          displayModeBar: false,
+          toImageButtonOptions: { format: "png", filename: "tangent-circle", scale: 2 },
+        },
+      };
 
       setResult({
         error: "",
@@ -130,6 +264,7 @@ function TangentToCirclePanel({ onBack }) {
         latexPointForm,
         latexLinearForm,
         numericSummary,
+        plotData,
       });
     } catch (err) {
       setResult({
@@ -142,6 +277,7 @@ function TangentToCirclePanel({ onBack }) {
         latexPointForm: "",
         latexLinearForm: "",
         numericSummary: "",
+        plotData: null,
       });
     }
     setIsSubmitting(false);
@@ -291,6 +427,25 @@ function TangentToCirclePanel({ onBack }) {
                     <BlockMath>{result.numericSummary}</BlockMath>
                   </div>
                 </div>
+
+                {/* Plot visualization */}
+                {result.plotData && (
+                  <div className="mt-3" aria-label="Circle and tangent graph visualization">
+                    <Plot
+                      data={result.plotData.data}
+                      layout={result.plotData.layout}
+                      config={result.plotData.config}
+                      style={{ width: "100%", height: "360px", minHeight: 260 }}
+                      useResizeHandler={true}
+                    />
+                    <div className="mt-1 small text-muted" aria-live="polite">
+                      <span style={{ color: "#4c6fff", fontWeight: 600 }}>Blue</span>: circle 
+                      <span style={{ color: "#e87a41", fontWeight: 600 }}>Orange dashed</span>: tangent 
+                      <span style={{ color: "#31d07e" }}>Green dot</span>: tangency 
+                      <span style={{ color: "#6c757d" }}>X</span>: center
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
