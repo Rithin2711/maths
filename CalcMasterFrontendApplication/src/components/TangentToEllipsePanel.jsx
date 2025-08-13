@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { BlockMath } from "react-katex";
 import "katex/dist/katex.min.css";
@@ -14,6 +14,14 @@ import Plot from "./PlotlyLite";
  * Panel for computing the equation of the tangent to an ellipse at a specified point.
  * Ellipse (centered at (h,k) with semi-axes a, b):
  *   ((x-h)^2)/a^2 + ((y-k)^2)/b^2 = 1
+ *
+ * Smart input feature:
+ *  - User can enter either x1 OR y1.
+ *  - Auto-compute the other using:
+ *      y1 = k ± b sqrt( 1 - ((x1-h)^2)/a^2 ), or
+ *      x1 = h ± a sqrt( 1 - ((y1-k)^2)/b^2 ).
+ *  - Show equations used, display candidate solutions and allow swapping the branch.
+ *  - Feedback if input does not yield a real solution (radicand < 0).
  *
  * Tangent at (x1, y1) on the ellipse:
  *   ((x1-h)(x-h))/a^2 + ((y1-k)(y-k))/b^2 = 1
@@ -36,6 +44,20 @@ function TangentToEllipsePanel({ onBack }) {
   const [y1, setY1] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Track last edited and auto-fill flags
+  const [lastEdited, setLastEdited] = useState(null); // 'x' | 'y' | null
+  const [autoY, setAutoY] = useState(true);
+  const [autoX, setAutoX] = useState(true);
+
+  // Smart helper display
+  const [autoInfo, setAutoInfo] = useState({
+    error: "",
+    latexUsed: "",
+    detailsLatex: "",
+    solutionsLatex: "",
+    using: "",
+  });
+
   // Results
   const [result, setResult] = useState({
     error: "",
@@ -56,12 +78,198 @@ function TangentToEllipsePanel({ onBack }) {
       throw new Error(`Invalid numeric value: "${expr}"`);
     }
   }
-
+  function tryEvalNum(expr) {
+    try {
+      return evalNum(expr);
+    } catch {
+      return NaN;
+    }
+  }
   function numLatex(val) {
     if (!Number.isFinite(val)) return "NaN";
     if (Math.abs(val - Math.round(val)) < 1e-10) return String(Math.round(val));
     return Number(val).toPrecision(8).replace(/\.?0+$/, "");
   }
+
+  // Auto-solve missing coordinate from ellipse equation.
+  useEffect(() => {
+    const hNum = tryEvalNum(h);
+    const kNum = tryEvalNum(k);
+    const aNum = tryEvalNum(a);
+    const bNum = tryEvalNum(b);
+    if (!Number.isFinite(hNum) || !Number.isFinite(kNum) || !(aNum > 0) || !(bNum > 0)) {
+      setAutoInfo({ error: "", latexUsed: "", detailsLatex: "", solutionsLatex: "", using: "" });
+      return;
+    }
+    const EPS = 1e-12;
+
+    // Solve y from x
+    if (lastEdited === "x" && x1.trim()) {
+      if (!y1.trim() || autoY) {
+        const xNum = tryEvalNum(x1);
+        if (!Number.isFinite(xNum)) {
+          setAutoInfo({
+            error: "x₁ is not a valid number/expression.",
+            latexUsed: "",
+            detailsLatex: "",
+            solutionsLatex: "",
+            using: "",
+          });
+          return;
+        }
+        const part = 1 - ((xNum - hNum) * (xNum - hNum)) / (aNum * aNum);
+        const latexUsed = String.raw`\text{Using: }\frac{(x_1-h)^2}{a^2} + \frac{(y_1-k)^2}{b^2} = 1`;
+        const detailsLatex = String.raw`y_1 = k \pm b\,\sqrt{\,1 - \frac{(x_1-h)^2}{a^2}\,}`;
+
+        if (part < -1e-10) {
+          setAutoInfo({
+            error:
+              "No real y₁ satisfies the ellipse equation for the provided x₁ (radicand < 0).",
+            latexUsed,
+            detailsLatex,
+            solutionsLatex: "",
+            using: "",
+          });
+          return;
+        }
+        const root = Math.sqrt(Math.max(0, part));
+        const yPlus = kNum + bNum * root;
+        const yMinus = kNum - bNum * root;
+
+        let chosen = yPlus;
+        let using = "+ branch";
+        const prevY = tryEvalNum(y1);
+        if (Number.isFinite(prevY)) {
+          const dPlus = Math.abs(prevY - yPlus);
+          const dMinus = Math.abs(prevY - yMinus);
+          if (dMinus + EPS < dPlus) {
+            chosen = yMinus;
+            using = "- branch";
+          }
+        }
+
+        setY1(String(chosen));
+        setAutoY(true);
+        setAutoInfo({
+          error: "",
+          latexUsed,
+          detailsLatex,
+          solutionsLatex: String.raw`\text{Solutions: }~ y_1 = ${numLatex(
+            yPlus
+          )} \quad\text{or}\quad y_1 = ${numLatex(yMinus)}`,
+          using,
+        });
+      }
+    }
+
+    // Solve x from y
+    if (lastEdited === "y" && y1.trim()) {
+      if (!x1.trim() || autoX) {
+        const yNum = tryEvalNum(y1);
+        if (!Number.isFinite(yNum)) {
+          setAutoInfo({
+            error: "y₁ is not a valid number/expression.",
+            latexUsed: "",
+            detailsLatex: "",
+            solutionsLatex: "",
+            using: "",
+          });
+          return;
+        }
+        const part = 1 - ((yNum - kNum) * (yNum - kNum)) / (bNum * bNum);
+        const latexUsed = String.raw`\text{Using: }\frac{(x_1-h)^2}{a^2} + \frac{(y_1-k)^2}{b^2} = 1`;
+        const detailsLatex = String.raw`x_1 = h \pm a\,\sqrt{\,1 - \frac{(y_1-k)^2}{b^2}\,}`;
+
+        if (part < -1e-10) {
+          setAutoInfo({
+            error:
+              "No real x₁ satisfies the ellipse equation for the provided y₁ (radicand < 0).",
+            latexUsed,
+            detailsLatex,
+            solutionsLatex: "",
+            using: "",
+          });
+          return;
+        }
+        const root = Math.sqrt(Math.max(0, part));
+        const xPlus = hNum + aNum * root;
+        const xMinus = hNum - aNum * root;
+
+        let chosen = xPlus;
+        let using = "+ branch";
+        const prevX = tryEvalNum(x1);
+        if (Number.isFinite(prevX)) {
+          const dPlus = Math.abs(prevX - xPlus);
+          const dMinus = Math.abs(prevX - xMinus);
+          if (dMinus + EPS < dPlus) {
+            chosen = xMinus;
+            using = "- branch";
+          }
+        }
+
+        setX1(String(chosen));
+        setAutoX(true);
+        setAutoInfo({
+          error: "",
+          latexUsed,
+          detailsLatex,
+          solutionsLatex: String.raw`\text{Solutions: }~ x_1 = ${numLatex(
+            xPlus
+          )} \quad\text{or}\quad x_1 = ${numLatex(xMinus)}`,
+          using,
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [h, k, a, b, x1, y1, lastEdited]);
+
+  const handleSwapBranch = () => {
+    try {
+      const hNum = evalNum(h);
+      const kNum = evalNum(k);
+      const aNum = evalNum(a);
+      const bNum = evalNum(b);
+      if (!(aNum > 0) || !(bNum > 0)) return;
+
+      if (lastEdited === "x" && x1.trim()) {
+        const xNum = evalNum(x1);
+        const part = 1 - ((xNum - hNum) * (xNum - hNum)) / (aNum * aNum);
+        if (part < -1e-10) return;
+        const root = Math.sqrt(Math.max(0, part));
+        const yPlus = kNum + bNum * root;
+        const yMinus = kNum - bNum * root;
+        const cur = tryEvalNum(y1);
+        if (Number.isFinite(cur)) {
+          const swapped = Math.abs(cur - yPlus) < 1e-9 ? yMinus : yPlus;
+          setY1(String(swapped));
+          setAutoY(true);
+          setAutoInfo((ai) => ({
+            ...ai,
+            using: Math.abs(swapped - yPlus) < 1e-9 ? "+ branch" : "- branch",
+          }));
+        }
+      } else if (lastEdited === "y" && y1.trim()) {
+        const yNum = evalNum(y1);
+        const part = 1 - ((yNum - kNum) * (yNum - kNum)) / (bNum * bNum);
+        if (part < -1e-10) return;
+        const root = Math.sqrt(Math.max(0, part));
+        const xPlus = hNum + aNum * root;
+        const xMinus = hNum - aNum * root;
+        const cur = tryEvalNum(x1);
+        if (Number.isFinite(cur)) {
+          const swapped = Math.abs(cur - xPlus) < 1e-9 ? xMinus : xPlus;
+          setX1(String(swapped));
+          setAutoX(true);
+          setAutoInfo((ai) => ({
+            ...ai,
+            using: Math.abs(swapped - xPlus) < 1e-9 ? "+ branch" : "- branch",
+          }));
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -82,11 +290,30 @@ function TangentToEllipsePanel({ onBack }) {
       const kNum = evalNum(k);
       const aNum = evalNum(a);
       const bNum = evalNum(b);
-      const xNum = evalNum(x1);
-      const yNum = evalNum(y1);
 
       if (!(aNum > 0) || !(bNum > 0)) {
         throw new Error("Semi-axes a and b must be positive numbers.");
+      }
+      if (!x1.trim() && !y1.trim()) {
+        throw new Error("Please provide either x₁ or y₁ for the tangency point.");
+      }
+
+      // Ensure both numeric coordinates, computing missing one if necessary
+      let xNum = tryEvalNum(x1);
+      let yNum = tryEvalNum(y1);
+
+      if (!Number.isFinite(xNum) && Number.isFinite(yNum)) {
+        const part = 1 - ((yNum - kNum) * (yNum - kNum)) / (bNum * bNum);
+        if (part < -1e-10) throw new Error("No real x₁ for given y₁ and ellipse parameters.");
+        xNum = hNum + aNum * Math.sqrt(Math.max(0, part));
+      } else if (!Number.isFinite(yNum) && Number.isFinite(xNum)) {
+        const part = 1 - ((xNum - hNum) * (xNum - hNum)) / (aNum * aNum);
+        if (part < -1e-10) throw new Error("No real y₁ for given x₁ and ellipse parameters.");
+        yNum = kNum + bNum * Math.sqrt(Math.max(0, part));
+      }
+
+      if (!Number.isFinite(xNum) || !Number.isFinite(yNum)) {
+        throw new Error("The tangency point coordinates could not be evaluated to real numbers.");
       }
 
       // Check that point lies on ellipse
@@ -94,7 +321,7 @@ function TangentToEllipsePanel({ onBack }) {
         ((xNum - hNum) ** 2) / (aNum * aNum) + ((yNum - kNum) ** 2) / (bNum * bNum);
       if (Math.abs(lhs - 1) > 1e-4) {
         throw new Error(
-          "The specified point is not on the ellipse (within tolerance). Ensure ((x1−h)^2)/a^2 + ((y1−k)^2)/b^2 = 1."
+          "The specified point is not on the ellipse (within tolerance). Ensure ((x₁−h)²)/a² + ((y₁−k)²)/b² = 1."
         );
       }
 
@@ -109,15 +336,17 @@ function TangentToEllipsePanel({ onBack }) {
 
       // Latex construction
       const latexIntro =
-        `\\textbf{Ellipse: }\\; \\frac{(x-${numLatex(hNum)})^{2}}{${numLatex(aNum)}^{2}} + \\frac{(y-${numLatex(
-          kNum
-        )})^{2}}{${numLatex(bNum)}^{2}} = 1,\\; \\text{point }(x_{1},y_{1})=(${numLatex(
-          xNum
-        )}, ${numLatex(yNum)})`;
+        `\\textbf{Ellipse: }\\; \\frac{(x-${numLatex(hNum)})^{2}}{${numLatex(
+          aNum
+        )}^{2}} + \\frac{(y-${numLatex(kNum)})^{2}}{${numLatex(
+          bNum
+        )}^{2}} = 1,\\; \\text{point }(x_{1},y_{1})=(${numLatex(xNum)}, ${numLatex(yNum)})`;
 
       const latexPointForm =
         `\\frac{(x_{1}-h)(x-h)}{a^{2}} + \\frac{(y_{1}-k)(y-k)}{b^{2}} = 1 \\;\\Rightarrow\\; ` +
-        `\\frac{(${numLatex(xNum - hNum)})(x-${numLatex(hNum)})}{${numLatex(aNum)}^{2}} + ` +
+        `\\frac{(${numLatex(xNum - hNum)})(x-${numLatex(hNum)})}{${numLatex(
+          aNum
+        )}^{2}} + ` +
         `\\frac{(${numLatex(yNum - kNum)})(y-${numLatex(kNum)})}{${numLatex(bNum)}^{2}} = 1`;
 
       const latexLinearForm =
@@ -125,10 +354,11 @@ function TangentToEllipsePanel({ onBack }) {
           C >= 0 ? "+ " : "- "
         }${numLatex(Math.abs(C))} = 0 }`;
 
-      const numericSummary =
-        `A = ${numLatex(A)},\\; B = ${numLatex(B)},\\; C = ${numLatex(C)};\\; \\text{ i.e., } ${numLatex(
-          A
-        )}x + ${numLatex(B)}y ${C >= 0 ? "+ " : "- "}${numLatex(Math.abs(C))} = 0`;
+      const numericSummary = `A = ${numLatex(A)},\\; B = ${numLatex(B)},\\; C = ${numLatex(
+        C
+      )};\\; \\text{ i.e., } ${numLatex(A)}x + ${numLatex(B)}y ${
+        C >= 0 ? "+ " : "- "
+      }${numLatex(Math.abs(C))} = 0`;
 
       // --- Build Plotly visualization ---
       // Ellipse parametric points: x = h + a cos t, y = k + b sin t
@@ -275,7 +505,7 @@ function TangentToEllipsePanel({ onBack }) {
   };
 
   return (
-    <main className="container py-5" style={{ maxWidth: 680 }}>
+    <main className="container py-5" style={{ maxWidth: 720 }}>
       <h2 className="fw-bold text-purple mb-4" tabIndex={0} style={{ color: "#6f42c1" }}>
         ⬭ Tangent to an Ellipse
       </h2>
@@ -347,14 +577,18 @@ function TangentToEllipsePanel({ onBack }) {
           </div>
           <div className="col-6">
             <label htmlFor="ellipse-x1" className="form-label fw-semibold">
-              Point x₁
+              Point x₁ <span className="text-muted small ms-1">(enter x₁ or y₁)</span>
             </label>
             <input
               id="ellipse-x1"
               className="form-control"
               type="text"
               value={x1}
-              onChange={(e) => setX1(e.target.value)}
+              onChange={(e) => {
+                setX1(e.target.value);
+                setLastEdited("x");
+                setAutoY(true);
+              }}
               placeholder="e.g. 3"
               style={{ borderRadius: 10, fontFamily: "Menlo, monospace" }}
               spellCheck={false}
@@ -363,14 +597,19 @@ function TangentToEllipsePanel({ onBack }) {
           </div>
           <div className="col-6">
             <label htmlFor="ellipse-y1" className="form-label fw-semibold">
-              Point y₁
+              Point y₁ <span className="text-muted small ms-1">(enter y₁ or x₁)</span>
             </label>
             <input
               id="ellipse-y1"
               className="form-control"
               type="text"
               value={y1}
-              onChange={(e) => setY1(e.target.value)}
+              onChange={(e) => {
+                setY1(e.target.value);
+                setLastEdited("y");
+                setAutoX(true);
+                setAutoY(false);
+              }}
               placeholder="e.g. 0"
               style={{ borderRadius: 10, fontFamily: "Menlo, monospace" }}
               spellCheck={false}
@@ -378,9 +617,64 @@ function TangentToEllipsePanel({ onBack }) {
             />
           </div>
         </div>
+
+        {/* Smart auto-solve helper */}
+        <div className="mt-3">
+          {(x1.trim() || y1.trim()) && (
+            <div
+              className="card border-0 shadow-sm"
+              style={{ borderRadius: 12, background: "#fbf7ff" }}
+            >
+              <div className="card-body py-3">
+                <h3 className="card-title fs-6 fw-bold mb-2">Smart fill</h3>
+                {autoInfo.error ? (
+                  <div
+                    className="alert alert-warning py-2"
+                    role="alert"
+                    style={{ borderRadius: 10, fontSize: "0.98rem" }}
+                  >
+                    ⚠️ {autoInfo.error}
+                  </div>
+                ) : (
+                  <>
+                    {autoInfo.latexUsed && <BlockMath>{autoInfo.latexUsed}</BlockMath>}
+                    {autoInfo.detailsLatex && <BlockMath>{autoInfo.detailsLatex}</BlockMath>}
+                    {autoInfo.solutionsLatex && (
+                      <div className="small text-muted">
+                        <BlockMath>{autoInfo.solutionsLatex}</BlockMath>
+                      </div>
+                    )}
+                    {autoInfo.using && (
+                      <div className="d-flex align-items-center gap-2 mt-2">
+                        <span className="badge" style={{ backgroundColor: "#6f42c1" }} aria-live="polite">
+                          Using {autoInfo.using}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={handleSwapBranch}
+                          aria-label="Swap to the other solution branch"
+                          style={{
+                            borderRadius: 10,
+                            border: "1px solid #6f42c1",
+                            color: "#6f42c1",
+                            background: "transparent",
+                          }}
+                        >
+                          Swap solution
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="small text-muted mt-2">
-          Provide numeric values or expressions (e.g., pi/4, sqrt(2)). The point must lie on the ellipse:
-          ((x₁−h)²)/a² + ((y₁−k)²)/b² = 1.
+          Provide numeric values or expressions (e.g., pi/4, sqrt(2)). You may enter either x₁ or y₁;
+          the other coordinate will be computed from ((x₁−h)²)/a² + ((y₁−k)²)/b² = 1.
         </div>
         <div className="d-flex justify-content-between mt-4">
           <button
@@ -396,7 +690,13 @@ function TangentToEllipsePanel({ onBack }) {
             type="submit"
             className="btn btn-purple"
             disabled={isSubmitting}
-            style={{ borderRadius: 10, fontWeight: 600, minWidth: 160, backgroundColor: "#6f42c1", color: "#fff" }}
+            style={{
+              borderRadius: 10,
+              fontWeight: 600,
+              minWidth: 160,
+              backgroundColor: "#6f42c1",
+              color: "#fff",
+            }}
             aria-label="Compute tangent to ellipse"
           >
             {isSubmitting ? "Working..." : "Compute Tangent"}
