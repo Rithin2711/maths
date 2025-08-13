@@ -7,6 +7,7 @@ import "nerdamer/Solve";
 import "nerdamer/Extra";
 import { BlockMath } from "react-katex";
 import "katex/dist/katex.min.css";
+import PrettyMathResult from "./PrettyMathResult";
 
 /**
  * PUBLIC_INTERFACE
@@ -232,9 +233,14 @@ function NormalDifferentialPanel({ onBack }) {
             </div>
           )}
           {result.latex && (
-            <div className="mt-3 card bg-light shadow-sm" style={{ borderRadius: 11, padding: 12 }}>
-              <div className="fw-bold mb-2 text-danger">Partial Derivative:</div>
-              <BlockMath>{result.latex}</BlockMath>
+            <div className="mt-3">
+              <PrettyMathResult
+                title="Partial Derivative"
+                subtitle={`with respect to ${varToDiff}`}
+                latex={result.latex}
+                accentColor="#dc3545"
+                ariaLabel={`Partial derivative with respect to ${varToDiff}`}
+              />
             </div>
           )}
         </div>
@@ -306,9 +312,14 @@ function NormalDifferentialPanel({ onBack }) {
             </div>
           )}
           {fullResult.latex && (
-            <div className="mt-3 card bg-light shadow-sm" style={{ borderRadius: 11, padding: 12 }}>
-              <div className="fw-bold mb-2 text-primary">Derivative Result:</div>
-              <BlockMath>{fullResult.latex}</BlockMath>
+            <div className="mt-3">
+              <PrettyMathResult
+                title="Derivative Result"
+                subtitle={singleVar ? `with respect to ${singleVar}` : undefined}
+                latex={fullResult.latex}
+                accentColor="#0d6efd"
+                ariaLabel={`Derivative result${singleVar ? ` with respect to ${singleVar}` : ""}`}
+              />
             </div>
           )}
         </div>
