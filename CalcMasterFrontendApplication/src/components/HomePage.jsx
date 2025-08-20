@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import "./HomePage.css";
+import MathPosters from "./MathPosters";
 
 // PUBLIC_INTERFACE
 /**
@@ -36,10 +37,16 @@ function HomePage({ onSelectMode }) {
       <h1 className="homepage-title mt-4 mb-2 text-primary fw-bold" tabIndex={0}>
         CalcMaster
       </h1>
-      <h2 className="homepage-subtitle mb-4 text-secondary" tabIndex={0}>
+      <h2 className="homepage-subtitle mb-3 text-secondary" tabIndex={0}>
         Choose a Math Operation
       </h2>
-      <div className="homepage-modes d-flex flex-row gap-4 flex-wrap justify-content-center mb-5">
+
+      {/* Collage banner */}
+      <div className="container mb-4" style={{ maxWidth: 1100 }}>
+        <MathPosters variant="banner" ariaLabel="Math collage with calculus and trigonometry examples" />
+      </div>
+
+      <div className="homepage-modes d-flex flex-row gap-4 flex-wrap justify-content-center mb-4">
         {modes.map((mode) => (
           <button
             key={mode.key}
@@ -68,6 +75,12 @@ function HomePage({ onSelectMode }) {
           </button>
         ))}
       </div>
+
+      {/* Scrollable poster strip */}
+      <div className="container mb-5" style={{ maxWidth: 1100 }}>
+        <MathPosters variant="strip" ariaLabel="Math concept posters for quick reference" />
+      </div>
+
       <footer className="homepage-footer text-center mt-auto text-muted small">
         <span>
           Friendly Math for Everyone — <a href="https://github.com/kavia-ai" target="_blank" rel="noopener noreferrer">GitHub</a>

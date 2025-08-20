@@ -1,0 +1,158 @@
+.math-poster-banner {
+  border-radius: 18px;
+  padding: 16px;
+  background: linear-gradient(120deg, #f0f7ff 0%, #fff6ef 55%, #f2fff9 100%);
+  box-shadow: 0 6px 28px rgba(59, 113, 235, 0.08);
+  overflow: hidden;
+}
+
+.banner-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.banner-media {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(80px, 1fr));
+  gap: 10px;
+  align-items: center;
+  justify-items: center;
+}
+
+.banner-figure {
+  margin: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+  padding: 6px;
+  width: 100%;
+  height: 100%;
+  min-height: 86px;
+  display: grid;
+  place-items: center;
+}
+
+.banner-figure img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: saturate(1.05) contrast(1.03);
+  border-radius: 8px;
+}
+
+.banner-text {
+  text-align: left;
+}
+
+.banner-title {
+  font-size: 1.25rem;
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  color: #263249;
+}
+
+.banner-subtitle {
+  font-size: 0.98rem;
+  margin: 0;
+  color: #506080;
+}
+
+/* Poster strip */
+.math-poster-strip {
+  border-radius: 14px;
+  background: #fbfdff;
+  border: 2px solid #edf4ff;
+  box-shadow: 0 4px 20px rgba(59, 113, 235, 0.05);
+  padding: 10px;
+}
+
+.strip-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding: 6px;
+}
+
+.strip-scroll:focus {
+  outline: 3px solid #e87a41;
+  outline-offset: 2px;
+}
+
+.poster-card {
+  scroll-snap-align: start;
+  min-width: 210px;
+  max-width: 240px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 3px 14px rgba(16, 38, 84, 0.08);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #edf2ff;
+}
+
+.poster-card-media {
+  height: 140px;
+  padding: 8px;
+  display: grid;
+  place-items: center;
+  border-bottom: 1px solid #f1f4fb;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.poster-card-media img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.poster-card-body {
+  padding: 10px 12px 12px 12px;
+  text-align: left;
+}
+
+.poster-card-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: #27324a;
+}
+
+.poster-card-caption {
+  font-size: 0.85rem;
+  color: #5b6a8c;
+  margin: 0;
+}
+
+/* A generic visually-hidden utility used for captions in the banner */
+.visually-hidden {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .banner-grid {
+    grid-template-columns: 1fr;
+  }
+  .banner-text {
+    text-align: center;
+  }
+  .banner-title {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .banner-media {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+}

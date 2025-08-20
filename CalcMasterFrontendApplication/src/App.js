@@ -18,6 +18,7 @@ const TangentToEllipsePanelLazy = lazy(() => import("./components/TangentToEllip
 const TriangleLinesInputPanelLazy = lazy(() => import("./components/TriangleLinesInputPanel"));
 const LimitPanelLazy = lazy(() => import("./components/LimitPanel"));
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
+import MathPosters from "./components/MathPosters";
 
 // PUBLIC_INTERFACE
 /**
@@ -105,6 +106,9 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
+        <div className="container mt-5 mb-3" style={{ maxWidth: 1100 }}>
+          <MathPosters variant="banner" ariaLabel="Integral topics collage" />
+        </div>
         <Suspense fallback={<div className="container p-4">Loading…</div>}>
           <IntegralOptionsPageLazy
             onSelectOption={handleIntegralOption}
@@ -192,6 +196,9 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
+        <div className="container mt-5 mb-3" style={{ maxWidth: 1100 }}>
+          <MathPosters variant="banner" ariaLabel="Differential topics collage" />
+        </div>
         <Suspense fallback={<div className="container p-4">Loading…</div>}>
           <DifferentialOptionsPageLazy
             onSelectOption={handleDifferentialOption}
@@ -350,6 +357,9 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
+        <div className="container mt-5 mb-3" style={{ maxWidth: 1100 }}>
+          <MathPosters variant="banner" ariaLabel="Limits topics collage" />
+        </div>
         <Suspense fallback={<div className="container p-4">Loading…</div>}>
           <LimitPanelLazy onBack={() => setHomeMode(null)} />
         </Suspense>
