@@ -8,6 +8,11 @@
   --border-color: #e9ecef;
   --button-bg: #007bff;
   --button-text: #ffffff;
+
+  /* Collage background controls (light theme defaults) */
+  --collage-overlay-from: rgba(255, 255, 255, 0.62);
+  --collage-overlay-to: rgba(255, 255, 255, 0);
+  --collage-url: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'><rect width='320' height='320' fill='none'/><g stroke='%23334' stroke-width='1'><path d='M10 310 L310 310 M10 10 L10 310' opacity='0.12'/><path d='M20 260 C 80 200, 120 120, 200 100 S 300 80, 310 120' fill='none' opacity='0.12'/><path d='M160 20 C 130 20 130 100 160 100 C 190 100 190 180 160 180' fill='none' stroke-width='3' opacity='0.15'/><circle cx='90' cy='170' r='3' fill='%23334' opacity='0.20'/><path d='M40 60 l40 0 m-20 -10 l0 20' opacity='0.10'/><text x='210' y='60' font-size='26' fill='%23334' opacity='0.18' font-family='Arial,Helvetica,sans-serif'>d/dx</text><text x='60' y='120' font-size='18' fill='%23334' opacity='0.12' font-family='Arial,Helvetica,sans-serif'>lim</text><path d='M60 125 h40' opacity='0.12'/></g><g fill='%23334' opacity='0.07'><circle cx='40' cy='40' r='1'/><circle cx='80' cy='80' r='1'/><circle cx='120' cy='40' r='1'/><circle cx='200' cy='200' r='1'/><circle cx='260' cy='140' r='1'/><circle cx='300' cy='260' r='1'/></g></svg>");
 }
 
 [data-theme="dark"] {
@@ -19,11 +24,22 @@
   --border-color: #404040;
   --button-bg: #0056b3;
   --button-text: #ffffff;
+
+  /* Collage background controls (dark theme) */
+  --collage-overlay-from: rgba(255, 255, 255, 0.08);
+  --collage-overlay-to: rgba(255, 255, 255, 0);
+  --collage-url: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'><rect width='320' height='320' fill='none'/><g stroke='%239fb4ff' stroke-width='1'><path d='M10 310 L310 310 M10 10 L10 310' opacity='0.10'/><path d='M20 260 C 80 200, 120 120, 200 100 S 300 80, 310 120' fill='none' opacity='0.10'/><path d='M160 20 C 130 20 130 100 160 100 C 190 100 190 180 160 180' fill='none' stroke-width='3' opacity='0.14'/><circle cx='90' cy='170' r='3' fill='%239fb4ff' opacity='0.18'/><path d='M40 60 l40 0 m-20 -10 l0 20' opacity='0.08'/><text x='210' y='60' font-size='26' fill='%239fb4ff' opacity='0.16' font-family='Arial,Helvetica,sans-serif'>d/dx</text><text x='60' y='120' font-size='18' fill='%239fb4ff' opacity='0.10' font-family='Arial,Helvetica,sans-serif'>lim</text><path d='M60 125 h40' opacity='0.10'/></g><g fill='%239fb4ff' opacity='0.06'><circle cx='40' cy='40' r='1'/><circle cx='80' cy='80' r='1'/><circle cx='120' cy='40' r='1'/><circle cx='200' cy='200' r='1'/><circle cx='260' cy='140' r='1'/><circle cx='300' cy='260' r='1'/></g></svg>");
 }
 
 .App {
   text-align: center;
-  background-color: var(--bg-primary);
+  background:
+    radial-gradient(1200px 600px at 50% -10%, var(--collage-overlay-from), var(--collage-overlay-to) 70%),
+    var(--collage-url),
+    var(--bg-primary);
+  background-repeat: no-repeat, repeat, no-repeat;
+  background-size: cover, 560px, auto;
+  background-attachment: scroll, fixed, scroll;
   color: var(--text-primary);
   min-height: 100vh;
   transition: background-color 0.3s ease, color 0.3s ease;

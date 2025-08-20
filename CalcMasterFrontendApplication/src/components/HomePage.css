@@ -1,6 +1,6 @@
 .homepage-main {
   min-height: 100vh;
-  background: var(--bg-primary, #fff);
+  background: transparent;
   color: var(--text-primary, #222);
   display: flex;
   flex-direction: column;
