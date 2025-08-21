@@ -18,8 +18,7 @@ const TangentToEllipsePanelLazy = lazy(() => import("./components/TangentToEllip
 const TriangleLinesInputPanelLazy = lazy(() => import("./components/TriangleLinesInputPanel"));
 const LimitPanelLazy = lazy(() => import("./components/LimitPanel"));
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
-import MathPosters from "./components/MathPosters";
-import CollageBackground from "./components/CollageBackground";
+
 
 // PUBLIC_INTERFACE
 /**
@@ -82,7 +81,6 @@ function App() {
   if (!homeMode) {
     return (
       <div className={`App bg-${theme} app-root`}>
-        <CollageBackground />
         <div className="content-surface">
           <button
             className="btn btn-outline-secondary theme-toggle"
@@ -102,7 +100,6 @@ function App() {
   if (homeMode === "integral" && !integralSubOption) {
     return (
       <div className={`App bg-${theme} app-root`}>
-        <CollageBackground />
         <div className="content-surface">
           <button
             className="btn btn-outline-secondary theme-toggle"
@@ -112,9 +109,6 @@ function App() {
           >
             {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
           </button>
-          <div className="container mt-5 mb-3" style={{ maxWidth: 1100 }}>
-            <MathPosters variant="banner" ariaLabel="Integral topics collage" />
-          </div>
           <Suspense fallback={<div className="container p-4">Loading…</div>}>
             <IntegralOptionsPageLazy
               onSelectOption={handleIntegralOption}
@@ -129,7 +123,6 @@ function App() {
   if (homeMode === "integral" && integralSubOption === "normal") {
     return (
       <div className={`App bg-${theme} app-root`}>
-        <CollageBackground />
         <div className="content-surface">
         <button
           className="btn btn-outline-secondary theme-toggle"
@@ -206,9 +199,7 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <div className="container mt-5 mb-3" style={{ maxWidth: 1100 }}>
-          <MathPosters variant="banner" ariaLabel="Differential topics collage" />
-        </div>
+
         <Suspense fallback={<div className="container p-4">Loading…</div>}>
           <DifferentialOptionsPageLazy
             onSelectOption={handleDifferentialOption}
@@ -367,9 +358,7 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
         </button>
-        <div className="container mt-5 mb-3" style={{ maxWidth: 1100 }}>
-          <MathPosters variant="banner" ariaLabel="Limits topics collage" />
-        </div>
+
         <Suspense fallback={<div className="container p-4">Loading…</div>}>
           <LimitPanelLazy onBack={() => setHomeMode(null)} />
         </Suspense>
@@ -458,7 +447,6 @@ function App() {
 
   return (
     <div className={`App bg-${theme} app-root`} data-testid="main-app-container">
-      <CollageBackground />
       <div className="content-surface">
       <header className="container py-3 position-relative">
         <div className="d-flex justify-content-between align-items-center mb-3">

@@ -33,13 +33,10 @@
 
 .App {
   text-align: center;
-  background:
-    radial-gradient(1200px 600px at 50% -10%, var(--collage-overlay-from), var(--collage-overlay-to) 70%),
-    var(--collage-url),
-    var(--bg-primary);
-  background-repeat: no-repeat, repeat, no-repeat;
-  background-size: cover, 560px, auto;
-  background-attachment: scroll, fixed, scroll;
+  background: var(--bg-primary);
+  background-repeat: no-repeat;
+  background-size: auto;
+  background-attachment: scroll;
   color: var(--text-primary);
   min-height: 100vh;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -176,77 +173,29 @@
   overflow-x: hidden;
 }
 
-.collage-background {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
+
 
 /* Collage layers base */
-.collage-layer.gradient {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(1200px 600px at 50% -10%, var(--collage-overlay-from), var(--collage-overlay-to) 70%);
-}
-.collage-layer.shapes {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-.collage-layer.noise {
-  position: absolute;
-  inset: 0;
-  /* lightweight noise via multiple box-shadows imitation */
-  background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0, rgba(0,0,0,0.02) 2px, transparent 2px, transparent 4px);
-  mix-blend-mode: soft-light;
-  opacity: 0.35;
-}
+
 
 /* Safe strip overlays to clear visuals above and below main buttons */
-.collage-safe-strip {
-  position: absolute;
-  left: 0;
-  right: 0;
-  z-index: 2; /* above shapes and noise, still under content since content has z-index: 2+ */
-  pointer-events: none;
-  /* Use theme-aware solid color to fully mask imagery */
-  background: var(--bg-primary);
-  opacity: 0.98;
-}
+
 
 /* Top strip: clears area above the buttons near the mid-upper region */
-.collage-safe-strip--top {
-  top: 38vh;
-  height: 18vh;
-}
+
 
 /* Bottom strip: clears area below the buttons near the mid-lower region */
-.collage-safe-strip--bottom {
-  bottom: 26vh;
-  height: 18vh;
-}
+
 
 @media (max-width: 768px) {
   /* On small screens, increase safe area to ensure clarity around the stacked button */
-  .collage-safe-strip--top {
-    top: 34vh;
-    height: 22vh;
-  }
-  .collage-safe-strip--bottom {
-    bottom: 22vh;
-    height: 22vh;
-  }
+
 }
 
 .content-surface {
   position: relative;
   z-index: 2;
-  /* ensure readability across backgrounds */
-  background: color-mix(in oklab, white 74%, transparent);
-  backdrop-filter: saturate(105%) blur(0px);
+  background: transparent;
 }
 
 /* Adjust for dark theme readability */

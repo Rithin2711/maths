@@ -1,11 +1,11 @@
 import React from "react";
 import PropTypes from "prop-types";
 import "./HomePage.css";
-import MathPosters from "./MathPosters";
 
 // PUBLIC_INTERFACE
 /**
  * HomePage for CalcMaster: lets user select Integral, Differential, or Limits mode.
+ * This minimal version intentionally displays only the heading and the three main buttons.
  * @param {function} onSelectMode - Called with mode: "integral", "differential", or "limits"
  */
 function HomePage({ onSelectMode }) {
@@ -21,7 +21,7 @@ function HomePage({ onSelectMode }) {
       key: "differential",
       label: "Differential",
       desc: "Perform differentiation and solve derivatives.",
-      icon: "𝑑/𝑑𝑥",
+      icon: "𝐑/𝐑𝕥",
       colorClass: "home-btn-differential",
     },
     {
@@ -32,21 +32,17 @@ function HomePage({ onSelectMode }) {
       colorClass: "home-btn-limits",
     },
   ];
+
   return (
     <main className="homepage-main d-flex flex-column justify-content-center align-items-center">
-      <h1 className="homepage-title mt-4 mb-2 text-primary fw-bold" tabIndex={0}>
+      <h1 className="homepage-title mt-4 mb-2 fw-bold" tabIndex={0}>
         CalcMaster
       </h1>
-      <h2 className="homepage-subtitle mb-3 text-secondary" tabIndex={0}>
+      <h2 className="homepage-subtitle mb-4" tabIndex={0}>
         Choose a Math Operation
       </h2>
 
-      {/* Collage banner */}
-      <div className="container mb-4" style={{ maxWidth: 1100 }}>
-        <MathPosters variant="banner" ariaLabel="Math collage with calculus and trigonometry examples" />
-      </div>
-
-      <div className="homepage-modes d-flex flex-row gap-4 flex-wrap justify-content-center mb-4">
+      <div className="homepage-modes d-flex flex-row gap-4 flex-wrap justify-content-center mb-2">
         {modes.map((mode) => (
           <button
             key={mode.key}
@@ -55,7 +51,8 @@ function HomePage({ onSelectMode }) {
             aria-label={mode.label}
             onClick={() => onSelectMode(mode.key)}
             style={{
-              minWidth: 170, minHeight: 145,
+              minWidth: 170,
+              minHeight: 145,
               fontSize: "1.2rem",
               border: "none",
               borderRadius: 18,
@@ -65,27 +62,28 @@ function HomePage({ onSelectMode }) {
               outline: "none",
               fontWeight: 650,
               letterSpacing: 0.2,
-              boxShadow: "0 4px 24px 0 rgba(80,100,200,0.06)"
+              boxShadow: "0 4px 24px 0 rgba(80,100,200,0.06)",
             }}
-            onKeyDown={e => (e.key === "Enter" || e.key === " ") && onSelectMode(mode.key)}
+            onKeyDown={(e) =>
+              (e.key === "Enter" || e.key === " ") && onSelectMode(mode.key)
+            }
           >
-            <span style={{ fontSize: "2.7rem", display: "block", marginBottom: 14 }}>{mode.icon}</span>
+            <span
+              style={{
+                fontSize: "2.7rem",
+                display: "block",
+                marginBottom: 14,
+              }}
+            >
+              {mode.icon}
+            </span>
             <span className="d-block mb-1">{mode.label}</span>
-            <span className="homepage-mode-desc small text-body-secondary">{mode.desc}</span>
+            <span className="homepage-mode-desc small text-body-secondary">
+              {mode.desc}
+            </span>
           </button>
         ))}
       </div>
-
-      {/* Scrollable poster strip */}
-      <div className="container mb-5" style={{ maxWidth: 1100 }}>
-        <MathPosters variant="strip" ariaLabel="Math concept posters for quick reference" />
-      </div>
-
-      <footer className="homepage-footer text-center mt-auto text-muted small">
-        <span>
-          Friendly Math for Everyone — <a href="https://github.com/kavia-ai" target="_blank" rel="noopener noreferrer">GitHub</a>
-        </span>
-      </footer>
     </main>
   );
 }
