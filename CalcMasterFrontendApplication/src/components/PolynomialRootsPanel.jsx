@@ -147,40 +147,11 @@ function PolynomialRootsPanel({ onBack }) {
     // Try to parse polynomial to get numeric roots and plotting
     const parsed = parsePolynomialToCoeffs(poly);
     if (!parsed) {
-      // If parsing failed, try to ask nerdamer for numeric approximations
-      try {
-        const r = nerdamer(`roots(${poly})`).evaluate();
-        // r might be like [1,2,3] or [1+i, 1-i]
-        const asString = r.toString().replace(/^\[|\]$/g, "");
-        const parts = asString.length ? asString.split(",") : [];
-        const numeric = parts
-          .map((s) => s.trim())
-          .filter((s) => s.length)
-          .map((s) => {
-            // crude parse: if contains 'i', interpret simple a+bi
-            if (/i/.test(s)) {
-              // Replace unary + for safety
-              let m = s.match(/^([+\-]?\d*\.?\d*)([+\-]\d*\.?\d*)i$/);
-              if (m) {
-                const re = Number(m[1] || "0");
-                const im = Number(m[2] || "0");
-                return { re, im };
-              }
-              // fallback approximate: let nerdamer give numeric real/imag
-              const re = Number(nerdamer(`realpart(${s})`).evaluate().text());
-              const im = Number(nerdamer(`imagpart(${s})`).evaluate().text());
-              return { re, im };
-            } else {
-              const re = Number(nerdamer(s).evaluate().text());
-              return { re, im: 0 };
-            }
-          });
-        setNumericRoots(numeric);
-      } catch (err) {
-        setError(
-          "Could not parse the polynomial. Please ensure it is in x (e.g., x^3 - 6x^2 + 11x - 6) or as comma-separated coefficients."
-        );
-      }
+      // Parsing failed; show a clear error and do not render roots/plot
+      setError("Enter a valid polynomial to see the plot.");
+      setNumericRoots([]);
+      setLatexRoots("");
+      setCoeffs(null);
       return;
     }
 
@@ -378,7 +349,7 @@ function PolynomialRootsPanel({ onBack }) {
       )}
 
       {/* Results section */}
-      {(!error && (numericRoots.length > 0 || latexRoots)) && (
+      {(!error && coeffs && (numericRoots.length > 0 || latexRoots)) && (
         <div className="mt-4">
           <div className="row g-3">
             <div className="col-12 col-lg-6">
@@ -437,7 +408,7 @@ function PolynomialRootsPanel({ onBack }) {
         </div>
       )}
 
-      {!error && numericRoots.length === 0 && !latexRoots && (
+      {!error && !coeffs && numericRoots.length === 0 && !latexRoots && (
         <div className="alert alert-info mt-3" role="note">
           Enter a polynomial and click Compute Roots to view results and the graph.
         </div>
