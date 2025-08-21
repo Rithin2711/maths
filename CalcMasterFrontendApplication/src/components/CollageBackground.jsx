@@ -7,11 +7,16 @@ import React from 'react';
  * It stays fixed, behind the main content, and adapts across breakpoints while preserving readability.
  */
 export default function CollageBackground() {
+  /**
+   * We preserve the collage everywhere except a horizontal safe strip
+   * around the main action button area to avoid visual interference.
+   * The safe strip is implemented with two overlay masks (top and bottom)
+   * that cover about 18vh above and 18vh below the vertical center.
+   * This keeps the region around primary buttons clean while the rest
+   * of the page retains its decorative background.
+   */
   return (
-    <div
-      aria-hidden="true"
-      className="collage-background"
-    >
+    <div aria-hidden="true" className="collage-background">
       {/* Layer 1: subtle gradient */}
       <div className="collage-layer gradient" />
 
@@ -78,6 +83,10 @@ export default function CollageBackground() {
 
       {/* Layer 3: subtle noise texture via CSS variable (uses filter for performance-friendly effect) */}
       <div className="collage-layer noise" />
+
+      {/* Layer 4: SAFE STRIPS — mask the collage around primary button rows */}
+      <div className="collage-safe-strip collage-safe-strip--top" />
+      <div className="collage-safe-strip collage-safe-strip--bottom" />
     </div>
   );
 }
