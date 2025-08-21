@@ -19,6 +19,7 @@ const TriangleLinesInputPanelLazy = lazy(() => import("./components/TriangleLine
 const LimitPanelLazy = lazy(() => import("./components/LimitPanel"));
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
 import MathPosters from "./components/MathPosters";
+import CollageBackground from "./components/CollageBackground";
 
 // PUBLIC_INTERFACE
 /**
@@ -80,48 +81,56 @@ function App() {
   // --- NAVIGATION SCREENS ---
   if (!homeMode) {
     return (
-      <div className={`App bg-${theme}`}>
-        <button
-          className="btn btn-outline-secondary theme-toggle"
-          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
-          onClick={toggleTheme}
-          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-        >
-          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
-        </button>
-        <Suspense fallback={<div className="container p-4">Loading…</div>}>
-          <HomePageLazy onSelectMode={handleHomeSelect} />
-        </Suspense>
+      <div className={`App bg-${theme} app-root`}>
+        <CollageBackground />
+        <div className="content-surface">
+          <button
+            className="btn btn-outline-secondary theme-toggle"
+            style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          >
+            {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+          </button>
+          <Suspense fallback={<div className="container p-4">Loading…</div>}>
+            <HomePageLazy onSelectMode={handleHomeSelect} />
+          </Suspense>
+        </div>
       </div>
     );
   }
   if (homeMode === "integral" && !integralSubOption) {
     return (
-      <div className={`App bg-${theme}`}>
-        <button
-          className="btn btn-outline-secondary theme-toggle"
-          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
-          onClick={toggleTheme}
-          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-        >
-          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
-        </button>
-        <div className="container mt-5 mb-3" style={{ maxWidth: 1100 }}>
-          <MathPosters variant="banner" ariaLabel="Integral topics collage" />
+      <div className={`App bg-${theme} app-root`}>
+        <CollageBackground />
+        <div className="content-surface">
+          <button
+            className="btn btn-outline-secondary theme-toggle"
+            style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          >
+            {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+          </button>
+          <div className="container mt-5 mb-3" style={{ maxWidth: 1100 }}>
+            <MathPosters variant="banner" ariaLabel="Integral topics collage" />
+          </div>
+          <Suspense fallback={<div className="container p-4">Loading…</div>}>
+            <IntegralOptionsPageLazy
+              onSelectOption={handleIntegralOption}
+              onBack={handleBackFromSubSelector}
+            />
+          </Suspense>
         </div>
-        <Suspense fallback={<div className="container p-4">Loading…</div>}>
-          <IntegralOptionsPageLazy
-            onSelectOption={handleIntegralOption}
-            onBack={handleBackFromSubSelector}
-          />
-        </Suspense>
       </div>
     );
   }
   // --- NEW: Show Normal Integration panel if selected ---
   if (homeMode === "integral" && integralSubOption === "normal") {
     return (
-      <div className={`App bg-${theme}`}>
+      <div className={`App bg-${theme} app-root`}>
+        <CollageBackground />
+        <div className="content-surface">
         <button
           className="btn btn-outline-secondary theme-toggle"
           style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
@@ -137,6 +146,7 @@ function App() {
             }}
           />
         </Suspense>
+        </div>
       </div>
     );
   }
@@ -447,7 +457,9 @@ function App() {
   };
 
   return (
-    <div className={`App bg-${theme}`} data-testid="main-app-container">
+    <div className={`App bg-${theme} app-root`} data-testid="main-app-container">
+      <CollageBackground />
+      <div className="content-surface">
       <header className="container py-3 position-relative">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h1 className="mb-0 visually-hidden">
@@ -573,6 +585,7 @@ function App() {
         @keyframes pulse { 0% { transform: scale(1);} 50%{transform: scale(1.03);} 100%{transform:scale(1);} }
         `}
       </style>
+      </div>
     </div>
   );
 }

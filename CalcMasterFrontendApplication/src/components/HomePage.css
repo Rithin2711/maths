@@ -21,6 +21,14 @@
   font-weight: 400;
 }
 
+.homepage-modes {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
 .home-mode-btn {
   background: #f7fafb;
   margin: 8px 0;
@@ -63,4 +71,20 @@
   .homepage-title { font-size: 1.3rem; }
   .homepage-subtitle { font-size: 1.05rem;}
   .home-mode-btn { font-size: 1rem; padding: 8vw 4vw; min-width: 82vw !important;}
+}
+
+/* Ensure home page sits above collage layers */
+.homepage-main, .homepage-wrapper, .home-mode-btn {
+  position: relative;
+  z-index: 3;
+}
+
+/* Optional helper to provide a soft panel surface over the collage */
+.home-page-surface {
+  background: color-mix(in oklab, white 85%, transparent);
+  backdrop-filter: saturate(110%) blur(0px);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.18);
+  padding: clamp(12px, 2vw, 24px);
+  margin: clamp(8px, 2vw, 20px);
 }

@@ -5,6 +5,15 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Allow app-level collage to be visible */
+  background: transparent;
+  color: #0b1220; /* good contrast on light content surface */
+}
+
+/* Ensure root takes full height to let fixed background cover viewport */
+#root {
+  min-height: 100vh;
 }
 
 code {

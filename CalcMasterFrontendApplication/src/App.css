@@ -168,3 +168,38 @@
   color: #1b7035;
   font-weight: 600;
 }
+
+/* Collage integration (layering) */
+.app-root {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.collage-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.content-surface {
+  position: relative;
+  z-index: 2;
+  /* ensure readability across backgrounds */
+  background: color-mix(in oklab, white 74%, transparent);
+  backdrop-filter: saturate(105%) blur(0px);
+}
+
+/* Adjust for dark theme readability */
+[data-theme="dark"] .content-surface {
+  background: color-mix(in oklab, #0b1220 35%, transparent);
+}
+
+/* Reduce intensity on small screens */
+@media (max-width: 768px) {
+  .content-surface {
+    background: color-mix(in oklab, white 78%, transparent);
+  }
+}
