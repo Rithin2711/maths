@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import "./HomePage.css";
+import "./ButtonStyles.css";
 
 // PUBLIC_INTERFACE
 /**
@@ -75,7 +76,9 @@ function HomePage({ onSelectMode }) {
               key={mode.key}
               className={`home-mode-btn ${mode.colorClass} shadow-lg`}
               tabIndex={0}
-              aria-label={mode.label}
+              aria-label={`${mode.label} — ${mode.desc}`}
+              title={mode.desc}
+              role="button"
               onClick={() => onSelectMode(mode.key)}
               style={{
                 minWidth: 170,

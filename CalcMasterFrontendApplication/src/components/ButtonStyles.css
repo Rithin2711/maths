@@ -1,0 +1,179 @@
+:root {
+  --btn-radius: 12px;
+  --btn-radius-lg: 14px;
+  --btn-shadow: 0 6px 14px rgba(31, 41, 55, 0.12);
+  --btn-shadow-hover: 0 10px 24px rgba(31, 41, 55, 0.18);
+  --btn-outline: #2563eb;
+  --btn-focus-ring: 0 0 0 4px rgba(37, 99, 235, 0.28);
+}
+
+/* Base enhancement for all .btn */
+.btn {
+  border-radius: var(--btn-radius);
+  font-weight: 600;
+  letter-spacing: .2px;
+  box-shadow: var(--btn-shadow);
+  transition: transform .12s ease, box-shadow .18s ease, background-color .18s ease, color .18s ease, border-color .18s ease;
+  will-change: transform, box-shadow;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--btn-shadow-hover);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: var(--btn-shadow);
+}
+
+.btn:focus-visible {
+  outline: 0;
+  box-shadow: var(--btn-shadow), var(--btn-focus-ring);
+}
+
+/* Larger, primary action button */
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info,
+.btn-secondary {
+  border: 0;
+}
+
+.btn-lg,
+.btn-xl,
+.home-mode-btn {
+  border-radius: var(--btn-radius-lg);
+}
+
+/* Ghost/outline style upgrade */
+.btn-outline-secondary,
+.btn-outline-primary {
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: saturate(160%) blur(4px);
+  -webkit-backdrop-filter: saturate(160%) blur(4px);
+  border: 1px solid rgba(30, 41, 59, 0.12);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-primary:hover {
+  border-color: rgba(30, 41, 59, 0.22);
+  background: #ffffff;
+}
+
+/* Icon alignment helper */
+.btn .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: .5rem;
+  font-size: 1.15em;
+  line-height: 1;
+}
+
+/* Math-themed color accents */
+.btn-math-blue {
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  color: #fff;
+}
+.btn-math-blue:hover { background: linear-gradient(180deg, #7dd3fc, #2563eb); color: #fff; }
+
+.btn-math-purple {
+  background: linear-gradient(180deg, #a78bfa, #8b5cf6);
+  color: #fff;
+}
+.btn-math-purple:hover { background: linear-gradient(180deg, #c4b5fd, #7c3aed); color: #fff; }
+
+.btn-math-green {
+  background: linear-gradient(180deg, #34d399, #10b981);
+  color: #062b22;
+}
+.btn-math-green:hover { background: linear-gradient(180deg, #6ee7b7, #059669); color: #05261d; }
+
+/* Accessible focus ring for custom buttons that aren't .btn */
+.home-mode-btn:focus-visible {
+  outline: 3px solid var(--btn-outline);
+  outline-offset: 3px;
+}
+
+/* Elevated “compute” CTA */
+.btn-compute {
+  background: linear-gradient(180deg, #10b981, #059669);
+  color: #fff;
+  border: 0;
+}
+.btn-compute:hover {
+  background: linear-gradient(180deg, #34d399, #10b981);
+  color: #fff;
+}
+.btn-compute:disabled {
+  background: linear-gradient(180deg, #9ca3af, #6b7280);
+  color: #e5e7eb;
+  cursor: not-allowed;
+}
+
+/* Subtle micro-interaction keyframes, reusable */
+@keyframes btnPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+.btn-affirm:hover { animation: btnPulse .5s ease-in-out; }
+
+/* Improve radio/checkbox click targets inside custom panels */
+.form-check-input {
+  cursor: pointer;
+}
+.form-check-label {
+  cursor: pointer;
+}
+
+/* Dark mode tune-ups */
+[data-theme="dark"] .btn-outline-secondary,
+[data-theme="dark"] .btn-outline-primary {
+  background: rgba(17, 24, 39, 0.55);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #e5e7eb;
+}
+[data-theme="dark"] .btn-outline-secondary:hover,
+[data-theme="dark"] .btn-outline-primary:hover {
+  background: rgba(17, 24, 39, 0.75);
+}
+
+/* Improve HomePage big tiles hover feedback on keyboard and mouse */
+.home-mode-btn {
+  position: relative;
+  isolation: isolate;
+}
+.home-mode-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 0 rgba(37, 99, 235, 0.0);
+  transition: box-shadow .12s ease;
+  pointer-events: none;
+}
+.home-mode-btn:hover::after,
+.home-mode-btn:focus-visible::after {
+  box-shadow: inset 0 0 0 3px rgba(37, 99, 235, 0.35);
+}
+
+/* Accessibility: ensure color contrast on disabled primary CTA */
+.btn-primary:disabled {
+  background-color: #6b7280 !important;
+  color: #e5e7eb !important;
+  opacity: 1;
+}
+
+/* Small responsive tweaks */
+@media (max-width: 480px) {
+  .btn {
+    font-weight: 600;
+  }
+  .btn .btn-icon {
+    margin-right: .4rem;
+  }
+}

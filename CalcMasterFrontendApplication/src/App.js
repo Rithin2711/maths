@@ -5,6 +5,7 @@ import MathInputPanel from "./components/MathInputPanel";
 import OperationSelector from "./components/OperationSelector";
 import ValidationFeedback from "./components/ValidationFeedback";
 import ResultsPanel from "./components/ResultsPanel";
+import "./components/ButtonStyles.css";
 const HomePageLazy = lazy(() => import("./components/HomePage"));
 const IntegralOptionsPageLazy = lazy(() => import("./components/IntegralOptionsPage"));
 const DifferentialOptionsPageLazy = lazy(() => import("./components/DifferentialOptionsPage"));
@@ -540,7 +541,7 @@ function App() {
               <div className="col-12 col-md-4 col-lg-3">
                 <button
                   type="submit"
-                  className="btn btn-primary btn-lg w-100 animate__animated animate__pulse"
+                  className="btn btn-compute btn-lg w-100 animate__animated animate__pulse btn-affirm"
                   disabled={!validation.valid || !mathExpr.trim()}
                   aria-disabled={!validation.valid}
                   aria-label="Compute solution"

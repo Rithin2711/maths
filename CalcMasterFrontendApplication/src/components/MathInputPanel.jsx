@@ -30,7 +30,7 @@ function MathInputPanel({ value, onChange, disabled = false, ariaLabel }) {
         <span
           tabIndex={0}
           role="tooltip"
-          style={{ fontSize: 14, color: "#E87A41", cursor: "help" }}
+          style={{ fontSize: 14, color: "#E87A41", cursor: "help", textDecoration: "underline dotted" }}
           aria-label="You can use basic math, parentheses, and math keywords!"
         >
           (What's this?)

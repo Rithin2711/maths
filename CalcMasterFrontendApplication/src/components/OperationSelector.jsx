@@ -37,7 +37,7 @@ function OperationSelector({ value, onChange, withIcons, OP_ICONS = {}, OP_DESCS
       <legend className="form-label fw-bold mb-2" style={{ fontSize: "1rem" }}>
         Operation <span className="ms-1" aria-hidden>{withIcons ? "🛠️" : ""}</span>
       </legend>
-      <div className="d-flex gap-2 justify-content-between flex-wrap" role="radiogroup" tabIndex={0}>
+      <div className="d-flex gap-3 justify-content-between flex-wrap" role="radiogroup" tabIndex={0}>
         {options.map((o) => (
           <div
             key={o.val}
