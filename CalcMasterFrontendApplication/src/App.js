@@ -17,6 +17,8 @@ const TangentToCirclePanelLazy = lazy(() => import("./components/TangentToCircle
 const TangentToEllipsePanelLazy = lazy(() => import("./components/TangentToEllipsePanel"));
 const TriangleLinesInputPanelLazy = lazy(() => import("./components/TriangleLinesInputPanel"));
 const LimitPanelLazy = lazy(() => import("./components/LimitPanel"));
+const LinearEquationSolverPanelLazy = lazy(() => import("./components/LinearEquationSolverPanel"));
+const PolynomialRootsPanelLazy = lazy(() => import("./components/PolynomialRootsPanel"));
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
 
 
@@ -27,7 +29,7 @@ import { calculateMathExpression, validateMathExpression } from "./math/mathEngi
  */
 function App() {
   const [theme, setTheme] = useState("light");
-  const [homeMode, setHomeMode] = useState(null); // "integral", "differential", "limits"
+  const [homeMode, setHomeMode] = useState(null); // "integral", "differential", "limits", "linear-solver", "poly-roots"
   const [integralSubOption, setIntegralSubOption] = useState(null); // "normal", "area", "volume"
   const [differentialSubOption, setDifferentialSubOption] = useState(null); // "normal", "tangent"
 
@@ -51,7 +53,14 @@ function App() {
   // -- Panel Navigation Logic --
   const handleHomeSelect = (mode) => {
     setHomeMode(mode);
-    setOperation(mode === "limits" ? "limit" : mode);
+    // For modes that tie to existing operation selector, map; otherwise keep current
+    if (mode === "limits") {
+      setOperation("limit");
+    } else if (mode === "integral") {
+      setOperation("integral");
+    } else if (mode === "differential") {
+      setOperation("differential");
+    }
     setIntegralSubOption(null);
     setDifferentialSubOption(null);
   };
@@ -366,6 +375,44 @@ function App() {
     );
   }
 
+  // --- LINEAR EQUATION SOLVER PANEL (placeholder) ---
+  if (homeMode === "linear-solver") {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <LinearEquationSolverPanelLazy onBack={() => setHomeMode(null)} />
+        </Suspense>
+      </div>
+    );
+  }
+
+  // --- POLYNOMIAL ROOTS PANEL (placeholder) ---
+  if (homeMode === "poly-roots") {
+    return (
+      <div className={`App bg-${theme}`}>
+        <button
+          className="btn btn-outline-secondary theme-toggle"
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+        </button>
+        <Suspense fallback={<div className="container p-4">Loading…</div>}>
+          <PolynomialRootsPanelLazy onBack={() => setHomeMode(null)} />
+        </Suspense>
+      </div>
+    );
+  }
+
   // Mode-dependent heading
   const getModeHeading = () => {
     switch (homeMode) {
@@ -435,8 +482,8 @@ function App() {
   const OP_ICONS = {
     limit: "🍀",
     integral: "∫",
-    differential: "𝑑/𝑑𝑥",
-    trigonometric: "𝚃𝚛𝚒𝚐",
+    differential: "ᴑ/ᴑᵥ",
+    trigonometric: "𝘃𝘢𝘭",
   };
   const OP_DESCS = {
     limit: "Calculate the value a function approaches.",
@@ -519,7 +566,7 @@ function App() {
                 aria-live="polite"
                 tabIndex={0}
               >
-                Example for <span className="fw-bold text-primary">{operation}</span>:{" "}
+                Example for <span className="fw-bold text-primary">{operation}</span>{" "}
                 <span className="bg-light px-2 py-1 rounded small shadow-sm" style={{ fontFamily: "monospace" }}>
                   {examples[operation]}
                 </span>

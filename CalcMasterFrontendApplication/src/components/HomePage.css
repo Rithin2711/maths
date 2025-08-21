@@ -57,10 +57,12 @@
 /* Button grid */
 .homepage-modes {
   display: flex;
-  gap: 24px;
+  gap: clamp(16px, 2vw, 24px);
   justify-content: center;
   align-items: stretch;
   flex-wrap: wrap;
+  row-gap: clamp(16px, 2vw, 24px);
+  column-gap: clamp(16px, 2vw, 24px);
 }
 
 /* Buttons with subtle depth; retain existing color classes */
@@ -95,6 +97,16 @@
 .home-btn-limits {
   border-bottom: 6px solid #34a07d;
   background: linear-gradient(180deg, #f8fff7, #e6fff1 81%);
+}
+
+/* New variants for Linear Solver and Polynomial Roots */
+.home-btn-linear {
+  border-bottom: 6px solid #0ea5e9; /* sky-500 */
+  background: linear-gradient(180deg, #f0f9ff, #e0f2fe 85%);
+}
+.home-btn-poly {
+  border-bottom: 6px solid #a855f7; /* purple-500 */
+  background: linear-gradient(180deg, #faf5ff, #f3e8ff 85%);
 }
 
 /* Non-text watermark stripe behind the focus area for depth */

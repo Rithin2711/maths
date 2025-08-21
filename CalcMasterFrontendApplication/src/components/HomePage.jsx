@@ -31,6 +31,20 @@ function HomePage({ onSelectMode }) {
       icon: "lim",
       colorClass: "home-btn-limits",
     },
+    {
+      key: "linear-solver",
+      label: "Solve Linear Equation (2-6 variables)",
+      desc: "Solve Ax = b for 2 to 6 variables.",
+      icon: "A𝒙=b",
+      colorClass: "home-btn-linear",
+    },
+    {
+      key: "poly-roots",
+      label: "Find Polynomial Roots",
+      desc: "Compute roots (real/complex) of polynomials.",
+      icon: "roots",
+      colorClass: "home-btn-poly",
+    },
   ];
 
   return (
