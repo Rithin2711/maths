@@ -44,6 +44,10 @@
   letter-spacing: 0.01em;
   /* For friendlier layout, transition, and whitespace */
   overflow-x: hidden;
+
+  /* Ensure app content sits above global watermarks */
+  position: relative;
+  z-index: 1;
 }
 
 .App-logo {
@@ -171,25 +175,6 @@
   position: relative;
   min-height: 100vh;
   overflow-x: hidden;
-}
-
-
-
-/* Collage layers base */
-
-
-/* Safe strip overlays to clear visuals above and below main buttons */
-
-
-/* Top strip: clears area above the buttons near the mid-upper region */
-
-
-/* Bottom strip: clears area below the buttons near the mid-lower region */
-
-
-@media (max-width: 768px) {
-  /* On small screens, increase safe area to ensure clarity around the stacked button */
-
 }
 
 .content-surface {

@@ -1,3 +1,8 @@
+:root {
+  --text-base: #0f172a;
+}
+
+/* Global resets and font smoothing */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -6,17 +11,73 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Allow app-level collage to be visible */
-  background: transparent;
-  color: #0b1220; /* good contrast on light content surface */
-}
-
-/* Ensure root takes full height to let fixed background cover viewport */
-#root {
+  /* Background collage: layered gradients + subtle grid */
   min-height: 100vh;
+  color: var(--text-base);
+
+  /* Layered backgrounds:
+     1) radial gradient spots
+     2) linear gradient beams
+     3) subtle grid pattern
+  */
+  background-image:
+    radial-gradient(1200px 800px at 120% -10%, rgba(56, 189, 248, 0.20), rgba(56, 189, 248, 0) 60%),
+    radial-gradient(900px 700px at -10% 110%, rgba(139, 92, 246, 0.14), rgba(139, 92, 246, 0) 60%),
+    linear-gradient(120deg, rgba(99, 102, 241, 0.08) 0%, rgba(56, 189, 248, 0.08) 50%, rgba(34, 197, 94, 0.06) 100%),
+    /* subtle grid via repeating-linear-gradient */
+    linear-gradient(0deg, rgba(15, 23, 42, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.02) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    24px 24px,
+    24px 24px;
+  background-position: center center, center center, center center, top left, top left;
+  background-attachment: fixed, fixed, fixed, fixed, fixed;
 }
 
+/* Provide a high-contrast safety for users preferring reduced transparency or contrast */
+@media (prefers-contrast: more) {
+  body {
+    background-image: linear-gradient(180deg, #ffffff, #f7fafc);
+    background-attachment: fixed;
+  }
+}
+
+/* Watermark layers: positioned using pseudo elements on body to avoid interfering with content */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* ensure clicks go through */
+  z-index: 0; /* behind main content */
+}
+
+/* Watermark: math symbols pattern (SVG as data URL) */
+body::before {
+  /* SVG with math glyphs: ∑ ∫ π θ f(x) */
+  background-image: url("data:image/svg+xml,%3Csvg width='800' height='600' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd' opacity='0.07'%3E%3Ctext x='50' y='100' font-family='Georgia, serif' font-size='56' fill='%230f172a'%3E%E2%88%91%3C/text%3E%3Ctext x='250' y='200' font-family='Georgia, serif' font-size='64' fill='%230f172a'%3E%E2%88%AB%3C/text%3E%3Ctext x='500' y='160' font-family='Georgia, serif' font-size='52' fill='%230f172a'%3E%CF%80%3C/text%3E%3Ctext x='120' y='360' font-family='Georgia, serif' font-size='54' fill='%230f172a'%3E%CE%B8%3C/text%3E%3Ctext x='420' y='420' font-family='Georgia, serif' font-size='46' fill='%230f172a'%3Ef(x)%3C/text%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 800px 600px;
+  mix-blend-mode: normal;
+}
+
+/* Additional soft vignette to keep focus on center area */
+body::after {
+  background: radial-gradient(60% 50% at 50% 30%, rgba(255,255,255,0) 0%, rgba(255,255,255,0.0) 55%, rgba(255,255,255,0.65) 100%),
+              radial-gradient(90% 70% at 50% 120%, rgba(255,255,255,0.0) 0%, rgba(255,255,255,0.7) 80%);
+  z-index: 0;
+}
+
+/* Main app root should be positioned above background watermarks */
+#root, .App {
+  position: relative;
+  z-index: 1;
+}
+
+/* Code font default */
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
