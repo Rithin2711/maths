@@ -6,8 +6,9 @@ import { BlockMath } from "react-katex";
 /**
  * PUBLIC_INTERFACE
  * ResultsPanel renders calculation results cleanly using KaTeX. It ensures:
- * - No raw 'latex' or 'latex*' tokens/labels are shown.
- * - If the evaluated result is numeric, it is rounded to 3 decimal points before display.
+ * - No raw 'latex' or 'latex*' tokens/labels are shown
+ * - Numeric roots are detected, rounded to 3 decimal points, and highlighted
+ * - Symbolic expressions are preserved without modification
  *
  * PUBLIC_INTERFACE
  * Props:
@@ -25,21 +26,28 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
   // Strip any literal occurrences of 'latex' or 'latex*' to avoid helper labels showing
   const stripLatexLabels = (s) => (s || "").replace(/\blatex\*?\b/gi, "").trim();
 
-  // Helper: detect a numeric string and round to 3 decimals
-  const tryRoundNumeric = (s) => {
-    if (s == null) return "";
+  // Helper: detect and process numeric values, returning { isNumeric, value, formatted }
+  const processNumeric = (s) => {
+    if (s == null) return { isNumeric: false, value: "", formatted: "" };
     const trimmed = String(s).trim();
+    
     // Allow forms like "≈ 1.2345", "= 1.2345", or plain "1.2345"
-    const eqMatch = trimmed.match(/(?:=|≈)?\s*([+\-]?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/);
+    const eqMatch = trimmed.match(/(?:=|\u2248)?\\s*([+\-]?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/);
+    
     if (eqMatch && eqMatch[1] != null) {
       const n = Number(eqMatch[1]);
       if (!Number.isNaN(n) && Number.isFinite(n)) {
         const rounded = Number(n.toFixed(3));
         // Replace only the matched numeric portion with the rounded value (preserve prefix if any)
-        return trimmed.replace(eqMatch[1], String(rounded));
+        const formatted = trimmed.replace(eqMatch[1], String(rounded));
+        return {
+          isNumeric: true,
+          value: rounded,
+          formatted: formatted,
+        };
       }
     }
-    return trimmed;
+    return { isNumeric: false, value: trimmed, formatted: trimmed };
   };
 
   const isIntegral = (operation || "").toLowerCase() === "integral";
@@ -49,19 +57,19 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
   const cleanedRaw = stripLatexLabels(raw);
 
   // For integrals, show only the final evaluated part (RHS after '=' if present)
-  let integralDisplayValue = "";
+  let integralResult = { isNumeric: false, value: "", formatted: "" };
   if (!error && isIntegral) {
+    let integralValue = "";
     if (typeof cleanedLatex === "string" && cleanedLatex.length > 0) {
       const eqMatch = cleanedLatex.match(/=(.*)$/s);
       if (eqMatch && eqMatch[1]) {
-        integralDisplayValue = eqMatch[1].trim();
+        integralValue = eqMatch[1].trim();
       }
     }
-    if (!integralDisplayValue && typeof cleanedRaw === "string") {
-      integralDisplayValue = cleanedRaw;
+    if (!integralValue && typeof cleanedRaw === "string") {
+      integralValue = cleanedRaw;
     }
-    // Round numeric if applicable
-    integralDisplayValue = tryRoundNumeric(integralDisplayValue);
+    integralResult = processNumeric(integralValue);
   }
 
   // Non-integral display checks
@@ -71,9 +79,15 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
   const canShowRaw =
     !isIntegral && !error && typeof cleanedRaw === "string" && cleanedRaw.trim().length > 0;
 
-  // When showing general latex or raw, round numeric results embedded in them
-  const roundedLatex = canShowGeneralLatex ? tryRoundNumeric(cleanedLatex) : "";
-  const roundedRaw = canShowRaw ? tryRoundNumeric(cleanedRaw) : "";
+  // Process general latex and raw results
+  const processedLatex = canShowGeneralLatex ? processNumeric(cleanedLatex) : { isNumeric: false, formatted: "" };
+  const processedRaw = canShowRaw ? processNumeric(cleanedRaw) : { isNumeric: false, formatted: "" };
+
+  // Styles for numeric highlighting
+  const numericHighlightStyle = {
+    color: "#2563eb", // Blue shade
+    fontWeight: "500",
+  };
 
   return (
     <div
@@ -105,36 +119,44 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
         )}
 
         {/* Integral: render only the final value (KaTeX) */}
-        {!error && isIntegral && integralDisplayValue && (
+        {!error && isIntegral && integralResult.formatted && (
           <div
             className="display-6 animate__animated animate__pulse"
             aria-label="Integral result"
-            style={{ fontSize: "1.35rem" }}
+            style={{
+              fontSize: "1.35rem",
+              ...(integralResult.isNumeric ? numericHighlightStyle : {}),
+            }}
           >
-            <BlockMath>{integralDisplayValue}</BlockMath>
+            <BlockMath>{integralResult.formatted}</BlockMath>
           </div>
         )}
 
-        {/* Non-integral: render LaTeX result (with tokens stripped and numeric rounded) */}
+        {/* Non-integral: render LaTeX result (with tokens stripped and numeric highlighted) */}
         {canShowGeneralLatex && (
-          <div className="display-6 animate__animated animate__pulse" aria-label="Math result">
-            <BlockMath>{roundedLatex}</BlockMath>
+          <div 
+            className="display-6 animate__animated animate__pulse" 
+            aria-label="Math result"
+            style={processedLatex.isNumeric ? numericHighlightStyle : {}}
+          >
+            <BlockMath>{processedLatex.formatted}</BlockMath>
           </div>
         )}
 
-        {/* Non-integral: accessible plain text snippet (tokens stripped and numeric rounded) */}
+        {/* Non-integral: accessible plain text snippet */}
         {canShowRaw && (
           <pre
-            className="small mt-3 p-2 bg-light border rounded"
+            className="small mt-3 p-2"
             tabIndex={0}
             aria-label="Plain result"
             style={{
               border: "1px dashed #b7d7ee",
               background: "#f0f6ff",
               borderRadius: 9,
+              ...(processedRaw.isNumeric ? numericHighlightStyle : {}),
             }}
           >
-            <code>{roundedRaw}</code>
+            <code>{processedRaw.formatted}</code>
           </pre>
         )}
 
@@ -151,7 +173,7 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
         )}
 
         {/* Edge case for integrals with nothing to display */}
-        {!error && isIntegral && !integralDisplayValue && (
+        {!error && isIntegral && !integralResult.formatted && (
           <div
             className="alert alert-info"
             role="status"
