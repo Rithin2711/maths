@@ -6,238 +6,179 @@ import "nerdamer/Algebra";
 import "nerdamer/Solve";
 
 /**
- * Utility: Try to parse a polynomial in x to an array of coefficients (highest...lowest).
- * Accepts inputs like:
- *   "x^3 - 6x^2 + 11x - 6"
- *   "3x^4 + 2x - 7"
- *   "x^2 + 1"
- * Fallback: if parsing fails, returns null.
+ * Horner evaluation for coefficients in descending order [a_n, ..., a_0]
  */
-function parsePolynomialToCoeffs(exprRaw) {
-  if (!exprRaw || !exprRaw.trim()) return null;
-  // Normalize input spacing and signs
-  const expr = exprRaw
-    .replace(/\s+/g, "")
-    .replace(/−/g, "-") // minus sign
-    .replace(/−/g, "-");
-
-  // If user provides comma-separated coefficients in descending order, support it:
-  // e.g. "1,-6,11,-6" => x^3 - 6x^2 + 11x - 6
-  if (/^[+\-]?\d+(\.\d+)?(,[+\-]?\d+(\.\d+)?)+$/.test(expr)) {
-    const coeffs = expr.split(",").map((c) => Number(c));
-    if (coeffs.every((n) => Number.isFinite(n))) return coeffs;
-  }
-
-  // Use a simple tokenizer for terms of the form ax^n, ax, a
-  // Split into terms by sign, but keep the sign with the term
-  const terms = expr
-    .replace(/^\+/, "")
-    .replace(/-/g, "±")
-    .split("±")
-    .filter((t) => t.length > 0)
-    .map((t, idx) => (expr.startsWith("-") && idx === 0 ? "-" + t : t.startsWith("+") ? t.slice(1) : t));
-
-  // Detect highest power
-  let maxPow = 0;
-  const parsedTerms = [];
-  for (const term of terms) {
-    // Match: [sign][coeff?]x^[pow]? | [sign][coeff?]x | [sign][const]
-    // Examples: -3x^2, x^3, 2x, -x, +7
-    const mPow = term.match(/^([+\-]?\d*\.?\d*)x\^([+\-]?\d+)$/i);
-    const mLin = term.match(/^([+\-]?\d*\.?\d*)x$/i);
-    const mConst = term.match(/^([+\-]?\d*\.?\d*)$/i);
-
-    if (mPow) {
-      let c = mPow[1];
-      const p = parseInt(mPow[2], 10);
-      if (!Number.isFinite(p)) return null;
-      if (c === "" || c === "+" || c === undefined) c = "1";
-      if (c === "-") c = "-1";
-      const coeff = Number(c);
-      if (!Number.isFinite(coeff)) return null;
-      parsedTerms.push({ pow: p, coeff });
-      if (p > maxPow) maxPow = p;
-      continue;
-    }
-    if (mLin) {
-      let c = mLin[1];
-      if (c === "" || c === "+" || c === undefined) c = "1";
-      if (c === "-") c = "-1";
-      const coeff = Number(c);
-      if (!Number.isFinite(coeff)) return null;
-      parsedTerms.push({ pow: 1, coeff });
-      if (1 > maxPow) maxPow = 1;
-      continue;
-    }
-    if (mConst) {
-      const c = mConst[1] === "" || mConst[1] === undefined ? "0" : mConst[1];
-      const coeff = Number(c);
-      if (!Number.isFinite(coeff)) return null;
-      parsedTerms.push({ pow: 0, coeff });
-      if (0 > maxPow) maxPow = 0;
-      continue;
-    }
-    // Unrecognized term format
-    return null;
-  }
-
-  // Build coefficient array from highest to lowest power
-  const coeffs = Array.from({ length: maxPow + 1 }, () => 0);
-  for (const { pow, coeff } of parsedTerms) {
-    coeffs[maxPow - pow] += coeff;
-  }
-  // Drop leading zeros if any (but keep at least constant)
-  while (coeffs.length > 1 && Math.abs(coeffs[0]) < 1e-14) coeffs.shift();
-  return coeffs;
-}
-
 function evalPolynomialAt(coeffsDesc, x) {
-  // coeffsDesc is [a_n, a_{n-1}, ..., a_0]; Horner's method
   let y = 0;
   for (const c of coeffsDesc) y = y * x + c;
   return y;
 }
 
+/**
+ * Format complex number for display
+ */
 function formatComplex({ re, im }, precision = 10) {
   const r = Number.isFinite(re) ? Number(re.toFixed(precision)).toString() : "NaN";
-  const i = Number.isFinite(im) ? Number(Math.abs(im).toFixed(precision)).toString() : "NaN";
+  const iAbs = Number.isFinite(im) ? Number(Math.abs(im).toFixed(precision)).toString() : "NaN";
   if (!Number.isFinite(im) || Math.abs(im) < 1e-12) return r;
   const sign = im >= 0 ? "+" : "−";
-  return `${r} ${sign} ${i}i`;
+  return `${r} ${sign} ${iAbs}i`;
 }
 
-function rootsSymbolicLatex(expr) {
+/**
+ * Compute roots using nerdamer when possible; fallback to crude real root finder for real roots
+ */
+function computeRootsFromCoeffs(coeffsDesc) {
+  // Build polynomial expression string, e.g., "1*x^3 + -6*x^2 + 11*x + -6"
+  const n = coeffsDesc.length - 1;
+  const terms = coeffsDesc.map((c, i) => {
+    const pow = n - i;
+    if (Math.abs(c) < 1e-14) return null;
+    if (pow === 0) return `${c}`;
+    if (pow === 1) return `${c}*x`;
+    return `${c}*x^${pow}`;
+  }).filter(Boolean);
+  const expr = terms.length ? terms.join(" + ") : "0";
+
+  // Try nerdamer roots
   try {
-    const r = nerdamer(`roots(${expr})`).evaluate(); // returns list-like
-    const latex = nerdamer(`latex(${r.toString()})`).toString();
-    return { ok: true, latex, rootsRaw: r };
-  } catch (e) {
-    return { ok: false, latex: "", rootsRaw: null };
+    const r = nerdamer(`roots(${expr})`).evaluate(); // list
+    const asString = r.toString().replace(/^\[|\]$/g, "");
+    const parts = asString.length ? asString.split(",") : [];
+    const numeric = parts
+      .map((s) => s.trim())
+      .filter((s) => s.length)
+      .map((s) => {
+        if (/i/.test(s)) {
+          const re = Number(nerdamer(`realpart(${s})`).evaluate().text());
+          const im = Number(nerdamer(`imagpart(${s})`).evaluate().text());
+          return { re, im };
+        } else {
+          const re = Number(nerdamer(s).evaluate().text());
+          return { re, im: 0 };
+        }
+      });
+    return { numeric, expr, latex: nerdamer(`latex(${r.toString()})`).toString() };
+  } catch (_e) {
+    // Fallback: rough scan for real roots with bisection
+    const degree = n;
+    const realRoots = [];
+    const guessRange = 5 + 5 * degree;
+    const samples = 600;
+    let prevX = -guessRange;
+    let prevY = evalPolynomialAt(coeffsDesc, prevX);
+    for (let i = 1; i <= samples; i++) {
+      const x = -guessRange + (2 * guessRange * i) / samples;
+      const y = evalPolynomialAt(coeffsDesc, x);
+      if (prevY === 0) realRoots.push(prevX);
+      if (y === 0) realRoots.push(x);
+      if (prevY * y < 0) {
+        let a = prevX;
+        let b = x;
+        let ya = prevY;
+        for (let it = 0; it < 60; it++) {
+          const m = 0.5 * (a + b);
+          const ym = evalPolynomialAt(coeffsDesc, m);
+          if (Math.abs(ym) < 1e-12) {
+            a = b = m;
+            break;
+          }
+          if (ya * ym <= 0) {
+            b = m;
+          } else {
+            a = m;
+            ya = ym;
+          }
+        }
+        realRoots.push(0.5 * (a + b));
+      }
+      prevX = x;
+      prevY = y;
+    }
+    const uniq = [];
+    realRoots.sort((a, b) => a - b).forEach((r) => {
+      if (uniq.length === 0 || Math.abs(r - uniq[uniq.length - 1]) > 1e-6) uniq.push(r);
+    });
+    return { numeric: uniq.map((re) => ({ re, im: 0 })), expr, latex: "" };
   }
 }
 
 // PUBLIC_INTERFACE
 /**
  * PolynomialRootsPanel
- * UI to enter a polynomial in x, compute its roots (numeric and/or symbolic), and plot the curve with real roots on x-axis.
+ * Step-by-step UI:
+ *  - Step 1: ask for degree n
+ *  - Step 2: show n+1 coefficient inputs (descending order)
+ *  - Compute roots and plot polynomial
  */
 function PolynomialRootsPanel({ onBack }) {
-  const [poly, setPoly] = useState("");
+  const [step, setStep] = useState(1);
+  const [degree, setDegree] = useState(2);
+  const [coeffs, setCoeffs] = useState([1, 0, 0]); // default for degree 2: ax^2 + bx + c
   const [error, setError] = useState("");
   const [numericRoots, setNumericRoots] = useState([]); // array of {re, im}
-  const [latexRoots, setLatexRoots] = useState("");
-  const [coeffs, setCoeffs] = useState(null); // descending coefficients
+  const [latexRoots, setLatexRoots] = useState(""); // LaTeX list if available
 
-  const handleCompute = (e) => {
+  const handleDegreeSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+    const n = Number(degree);
+    if (!Number.isInteger(n) || n < 1 || n > 12) {
+      setError("Please enter an integer degree between 1 and 12.");
+      return;
+    }
+    // Initialize n+1 coefficient inputs
+    const initial = Array.from({ length: n + 1 }, (_, i) => (i === 0 ? 1 : 0));
+    setCoeffs(initial);
+    setNumericRoots([]);
+    setLatexRoots("");
+    setStep(2);
+  };
+
+  const handleCoeffChange = (idx, val) => {
+    const next = coeffs.slice();
+    const v = val.trim();
+    next[idx] = v === "" || v === "-" || v === "+" ? v : Number(v);
+    setCoeffs(next);
+  };
+
+  const normalizeCoeffs = () => {
+    // Convert to numbers, treat empty/"-" as 0
+    const arr = coeffs.map((c) => (typeof c === "number" && Number.isFinite(c) ? c : Number(c) || 0));
+    // Remove leading zeros but keep at least one term
+    let k = 0;
+    while (arr.length - k > 1 && Math.abs(arr[k]) < 1e-14) k++;
+    return arr.slice(k);
+  };
+
+  const handleSolve = (e) => {
     e.preventDefault();
     setError("");
     setNumericRoots([]);
     setLatexRoots("");
-    setCoeffs(null);
-
-    if (!poly.trim()) {
-      setError("Enter a polynomial, e.g., x^3 - 6x^2 + 11x - 6, or comma-separated coefficients like 1,-6,11,-6.");
+    const cleanCoeffs = normalizeCoeffs();
+    if (cleanCoeffs.length < 2) {
+      setError("Please provide a valid set of coefficients (leading coefficient cannot be 0).");
       return;
     }
-
-    // Try to get symbolic roots via nerdamer
-    const sym = rootsSymbolicLatex(poly);
-    if (sym.ok) setLatexRoots(sym.latex);
-
-    // Try to parse polynomial to get numeric roots and plotting
-    const parsed = parsePolynomialToCoeffs(poly);
-    if (!parsed) {
-      // Parsing failed; show a clear error and do not render roots/plot
-      setError("Enter a valid polynomial to see the plot.");
-      setNumericRoots([]);
-      setLatexRoots("");
-      setCoeffs(null);
-      return;
-    }
-
-    setCoeffs(parsed);
-
-    // Compute numeric roots using nerdamer's numeric form for robustness
-    try {
-      const r = nerdamer(`roots(${poly})`).evaluate();
-      const asString = r.toString().replace(/^\[|\]$/g, "");
-      const parts = asString.length ? asString.split(",") : [];
-      const numeric = parts
-        .map((s) => s.trim())
-        .filter((s) => s.length)
-        .map((s) => {
-          if (/i/.test(s)) {
-            const re = Number(nerdamer(`realpart(${s})`).evaluate().text());
-            const im = Number(nerdamer(`imagpart(${s})`).evaluate().text());
-            return { re, im };
-          } else {
-            const re = Number(nerdamer(s).evaluate().text());
-            return { re, im: 0 };
-          }
-        });
-      setNumericRoots(numeric);
-    } catch (err) {
-      // As a fallback, try simple numeric scanning for real roots (bisection on rough grid)
-      const realRoots = [];
-      const degree = parsed.length - 1;
-      const guessRange = 5 + 5 * degree;
-      const samples = 400;
-      let prevX = -guessRange;
-      let prevY = evalPolynomialAt(parsed, prevX);
-      for (let i = 1; i <= samples; i++) {
-        const x = -guessRange + (2 * guessRange * i) / samples;
-        const y = evalPolynomialAt(parsed, x);
-        if (prevY === 0) realRoots.push(prevX);
-        if (y === 0) realRoots.push(x);
-        if (prevY * y < 0) {
-          // bisection refine
-          let a = prevX;
-          let b = x;
-          let ya = prevY;
-          for (let it = 0; it < 50; it++) {
-            const m = 0.5 * (a + b);
-            const ym = evalPolynomialAt(parsed, m);
-            if (Math.abs(ym) < 1e-10) {
-              a = b = m;
-              break;
-            }
-            if (ya * ym <= 0) {
-              b = m;
-            } else {
-              a = m;
-              ya = ym;
-            }
-          }
-          realRoots.push(0.5 * (a + b));
-        }
-        prevX = x;
-        prevY = y;
-      }
-      const uniq = [];
-      realRoots.sort((a, b) => a - b).forEach((r) => {
-        if (uniq.length === 0 || Math.abs(r - uniq[uniq.length - 1]) > 1e-6) uniq.push(r);
-      });
-      setNumericRoots(uniq.map((re) => ({ re, im: 0 })));
-    }
+    const { numeric, latex } = computeRootsFromCoeffs(cleanCoeffs);
+    setNumericRoots(numeric);
+    setLatexRoots(latex || "");
   };
 
-  // Build plot spec for real-valued domain
   const plotSpec = useMemo(() => {
-    if (!coeffs || !Array.isArray(coeffs) || coeffs.length === 0) return null;
-
-    // Determine x-range using numeric roots if any, else default based on degree
-    const realRoots = numericRoots.filter((r) => Math.abs(r.im) < 1e-12).map((r) => r.re);
+    const cleanCoeffs = normalizeCoeffs();
+    if (cleanCoeffs.length === 0) return null;
+    // Range from roots if any real, else default
+    const realRoots = numericRoots.filter((z) => Math.abs(z.im) < 1e-12).map((z) => z.re);
     let minX = Number.POSITIVE_INFINITY;
     let maxX = Number.NEGATIVE_INFINITY;
-
     if (realRoots.length > 0) {
       minX = Math.min(...realRoots);
       maxX = Math.max(...realRoots);
     }
-    const deg = coeffs.length - 1;
-
+    const deg = cleanCoeffs.length - 1;
     if (!Number.isFinite(minX) || !Number.isFinite(maxX) || minX === maxX) {
-      // default
       minX = -5 - deg;
       maxX = 5 + deg;
     } else {
@@ -246,71 +187,67 @@ function PolynomialRootsPanel({ onBack }) {
       maxX += pad;
     }
 
-    // Sample polynomial
-    const N = 400;
+    const N = 500;
     const xs = [];
     const ys = [];
     for (let i = 0; i <= N; i++) {
       const x = minX + ((maxX - minX) * i) / N;
       xs.push(x);
-      ys.push(evalPolynomialAt(coeffs, x));
+      ys.push(evalPolynomialAt(cleanCoeffs, x));
     }
 
-    // Traces: curve and real roots as markers
     const curveTrace = {
       x: xs,
       y: ys,
       type: "scatter",
       mode: "lines",
       name: "p(x)",
-      line: { color: "#1f77b4", width: 2 },
+      line: { color: "#2563eb", width: 2 },
       hovertemplate: "x=%{x:.4g}<br>y=%{y:.4g}<extra></extra>",
     };
 
-    const realRootPts = realRoots.map((x) => ({ x, y: 0 }));
-    const rootsTrace =
-      realRootPts.length > 0
-        ? {
-            x: realRootPts.map((p) => p.x),
-            y: realRootPts.map((p) => p.y),
-            type: "scatter",
-            mode: "markers+text",
-            name: "Real Roots",
-            marker: { color: "#d62728", size: 10, symbol: "x" },
-            text: realRootPts.map((p, idx) => `r${idx + 1}=${p.x.toFixed(4)}`),
-            textposition: "top center",
-            hovertemplate: "root x=%{x:.6g}<extra></extra>",
-          }
-        : null;
+    const rootsPts = realRoots.map((x) => ({ x, y: 0 }));
+    const rootsTrace = rootsPts.length
+      ? {
+          x: rootsPts.map((p) => p.x),
+          y: rootsPts.map((p) => p.y),
+          type: "scatter",
+          mode: "markers+text",
+          name: "Real Roots",
+          marker: { color: "#d97706", size: 10, symbol: "x" },
+          text: rootsPts.map((p, i) => `r${i + 1}=${p.x.toFixed(4)}`),
+          textposition: "top center",
+          hovertemplate: "root x=%{x:.6g}<extra></extra>",
+        }
+      : null;
 
     const layout = {
-      title: { text: "Polynomial and Real Roots", font: { size: 16 } },
+      title: { text: "Polynomial p(x) and Real Roots", font: { size: 16 } },
       margin: { l: 50, r: 10, t: 50, b: 40 },
-      xaxis: {
-        title: { text: "x" },
-        zeroline: true,
-        zerolinecolor: "#cccccc",
-        showgrid: true,
-        gridcolor: "#f5f5f5",
-        range: [minX, maxX],
-      },
-      yaxis: {
-        title: { text: "y = p(x)" },
-        zeroline: true,
-        zerolinecolor: "#cccccc",
-        showgrid: true,
-        gridcolor: "#f5f5f5",
-      },
+      xaxis: { title: { text: "x" }, zeroline: true, zerolinecolor: "#bbb", showgrid: true, gridcolor: "#f3f4f6", range: [minX, maxX] },
+      yaxis: { title: { text: "y = p(x)" }, zeroline: true, zerolinecolor: "#bbb", showgrid: true, gridcolor: "#f3f4f6" },
       paper_bgcolor: "white",
       plot_bgcolor: "white",
       hovermode: "closest",
       legend: { orientation: "h", y: -0.2 },
     };
-
     const data = rootsTrace ? [curveTrace, rootsTrace] : [curveTrace];
     const config = { responsive: true, displaylogo: false };
     return { data, layout, config };
   }, [coeffs, numericRoots]);
+
+  const cleanCoeffs = normalizeCoeffs();
+  const polySummary = (() => {
+    const n = cleanCoeffs.length - 1;
+    const terms = cleanCoeffs.map((c, i) => {
+      const pow = n - i;
+      if (Math.abs(c) < 1e-14) return null;
+      if (pow === 0) return `${c}`;
+      if (pow === 1) return `${c}x`;
+      return `${c}x^${pow}`;
+    }).filter(Boolean);
+    return terms.length ? terms.join(" + ") : "0";
+  })();
 
   return (
     <div className="container py-4">
@@ -321,97 +258,145 @@ function PolynomialRootsPanel({ onBack }) {
         </button>
       </div>
 
-      <form onSubmit={handleCompute}>
-        <div className="mb-3">
-          <label htmlFor="polyExpr" className="form-label fw-bold">Polynomial</label>
-          <input
-            id="polyExpr"
-            type="text"
-            className="form-control"
-            placeholder='e.g., x^3 - 6x^2 + 11x - 6  or coefficients: 1,-6,11,-6'
-            value={poly}
-            onChange={(e) => setPoly(e.target.value)}
-            aria-label="Polynomial expression"
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <div className="form-text">
-            Use x as the variable. Coefficients can be integers or decimals. You can also enter comma-separated coefficients in descending order.
+      {step === 1 && (
+        <form onSubmit={handleDegreeSubmit} className="card shadow-sm border-0 mb-3" style={{ borderRadius: 12 }}>
+          <div className="card-body">
+            <h3 className="h6 fw-bold mb-3">Step 1: Enter Degree (n)</h3>
+            <div className="row g-3 align-items-end">
+              <div className="col-12 col-md-6">
+                <label htmlFor="polyDegree" className="form-label">Degree n (1 - 12)</label>
+                <input
+                  id="polyDegree"
+                  type="number"
+                  className="form-control"
+                  min={1}
+                  max={12}
+                  value={degree}
+                  onChange={(e) => setDegree(e.target.value)}
+                  aria-label="Polynomial degree"
+                />
+                <div className="form-text">A polynomial of degree n has n+1 coefficients.</div>
+              </div>
+              <div className="col-12 col-md-6 d-flex gap-2">
+                <button type="submit" className="btn btn-primary">Next</button>
+                <button type="button" className="btn btn-outline-secondary" onClick={onBack}>Cancel</button>
+              </div>
+            </div>
           </div>
-        </div>
-        <button type="submit" className="btn btn-primary">Compute Roots</button>
-      </form>
+        </form>
+      )}
+
+      {step === 2 && (
+        <form onSubmit={handleSolve} className="card shadow-sm border-0 mb-3" style={{ borderRadius: 12 }}>
+          <div className="card-body">
+            <h3 className="h6 fw-bold mb-3">Step 2: Enter Coefficients (Descending Order)</h3>
+            <p className="text-muted small mb-2">
+              Enter coefficients a<sub>n</sub>, a<sub>n-1</sub>, ..., a<sub>0</sub> for p(x) = a<sub>n</sub>x<sup>n</sup> + ... + a<sub>0</sub>.
+            </p>
+            <div className="row g-2">
+              {coeffs.map((c, idx) => {
+                const n = coeffs.length - 1;
+                const pow = n - idx;
+                return (
+                  <div className="col-6 col-md-3 col-lg-2" key={idx}>
+                    <label className="form-label small" htmlFor={`coeff-${idx}`}>
+                      a<sub>{pow}</sub>
+                    </label>
+                    <input
+                      id={`coeff-${idx}`}
+                      type="text"
+                      inputMode="decimal"
+                      className="form-control"
+                      value={typeof c === "number" ? String(c) : c}
+                      onChange={(e) => handleCoeffChange(idx, e.target.value)}
+                      aria-label={`Coefficient a_${pow}`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="d-flex gap-2 mt-3">
+              <button type="submit" className="btn btn-success">Solve and Plot</button>
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setStep(1)}>Back</button>
+            </div>
+          </div>
+        </form>
+      )}
 
       {error && (
-        <div className="alert alert-danger mt-3" role="alert">
+        <div className="alert alert-danger" role="alert">
           {error}
         </div>
       )}
 
-      {/* Results section */}
-      {(!error && coeffs && (numericRoots.length > 0 || latexRoots)) && (
-        <div className="mt-4">
-          <div className="row g-3">
-            <div className="col-12 col-lg-6">
-              <div className="card shadow-sm" style={{ borderRadius: 12 }}>
-                <div className="card-body">
-                  <h3 className="h6 fw-bold mb-3">Roots</h3>
-                  {latexRoots ? (
-                    <div className="mb-2">
-                      <div className="text-muted small">Symbolic (KaTeX not required here; using LaTeX string):</div>
-                      <code className="d-block bg-light p-2 rounded" style={{ whiteSpace: "pre-wrap" }}>
-                        {latexRoots}
-                      </code>
-                    </div>
-                  ) : (
-                    <div className="text-muted small">Symbolic form not available.</div>
-                  )}
-                  <div className="mt-2">
-                    <div className="text-muted small">Numeric:</div>
-                    <ul className="mb-0">
-                      {numericRoots.length > 0 ? (
-                        numericRoots.map((z, idx) => (
-                          <li key={idx}>
-                            r{idx + 1} = <code>{formatComplex(z)}</code>
-                          </li>
-                        ))
-                      ) : (
-                        <li>No numeric roots extracted.</li>
-                      )}
-                    </ul>
-                  </div>
-                  <div className="form-text mt-2">
-                    Real roots are also marked on the plot along the x-axis.
-                  </div>
+      {/* Results */}
+      {numericRoots.length > 0 || latexRoots ? (
+        <div className="row g-3">
+          <div className="col-12 col-lg-6">
+            <div className="card shadow-sm" style={{ borderRadius: 12 }}>
+              <div className="card-body">
+                <h3 className="h6 fw-bold mb-3">Results</h3>
+                <div className="mb-2">
+                  <div className="text-muted small">Polynomial:</div>
+                  <code className="d-block bg-light p-2 rounded" style={{ whiteSpace: "pre-wrap" }}>
+                    p(x) = {polySummary}
+                  </code>
                 </div>
-              </div>
-            </div>
-            <div className="col-12 col-lg-6">
-              <div className="card shadow-sm" style={{ borderRadius: 12, minHeight: 420 }}>
-                <div className="card-body">
-                  <h3 className="h6 fw-bold mb-3">Graph of p(x)</h3>
-                  {plotSpec ? (
-                    <PlotlyLite
-                      data={plotSpec.data}
-                      layout={plotSpec.layout}
-                      config={plotSpec.config}
-                      style={{ width: "100%", height: 360 }}
-                      useResizeHandler={true}
-                    />
-                  ) : (
-                    <div className="text-muted small">Enter a valid polynomial to see the plot.</div>
-                  )}
+                {latexRoots ? (
+                  <div className="mb-2">
+                    <div className="text-muted small">Symbolic Roots (LaTeX):</div>
+                    <code className="d-block bg-light p-2 rounded" style={{ whiteSpace: "pre-wrap" }}>
+                      {latexRoots}
+                    </code>
+                  </div>
+                ) : (
+                  <div className="text-muted small">Symbolic roots unavailable for this polynomial.</div>
+                )}
+                <div className="mt-2">
+                  <div className="text-muted small">Numeric Roots:</div>
+                  <ul className="mb-0">
+                    {numericRoots.length > 0 ? (
+                      numericRoots.map((z, i) => (
+                        <li key={i}>
+                          r{i + 1} = <code>{formatComplex(z)}</code>
+                        </li>
+                      ))
+                    ) : (
+                      <li>No numeric roots found.</li>
+                    )}
+                  </ul>
+                </div>
+                <div className="form-text mt-2">
+                  Real roots are shown on the plot at y = 0.
                 </div>
               </div>
             </div>
           </div>
+          <div className="col-12 col-lg-6">
+            <div className="card shadow-sm" style={{ borderRadius: 12, minHeight: 420 }}>
+              <div className="card-body">
+                <h3 className="h6 fw-bold mb-3">Graph of p(x)</h3>
+                {plotSpec ? (
+                  <PlotlyLite
+                    data={plotSpec.data}
+                    layout={plotSpec.layout}
+                    config={plotSpec.config}
+                    style={{ width: "100%", height: 360 }}
+                    useResizeHandler={true}
+                  />
+                ) : (
+                  <div className="text-muted small">Provide valid coefficients to see the plot.</div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-
-      {!error && !coeffs && numericRoots.length === 0 && !latexRoots && (
-        <div className="alert alert-info mt-3" role="note">
-          Enter a polynomial and click Compute Roots to view results and the graph.
-        </div>
+      ) : (
+        !error && step === 2 && (
+          <div className="alert alert-info" role="note">
+            Enter coefficients and click "Solve and Plot" to compute the roots and draw the graph.
+          </div>
+        )
       )}
     </div>
   );
