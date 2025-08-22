@@ -20,17 +20,18 @@ const TriangleLinesInputPanelLazy = lazy(() => import("./components/TriangleLine
 const LimitPanelLazy = lazy(() => import("./components/LimitPanel"));
 const LinearEquationSolverPanelLazy = lazy(() => import("./components/LinearEquationSolverPanel"));
 const PolynomialRootsPanelLazy = lazy(() => import("./components/PolynomialRootsPanel"));
+const DifferentialEquationSolverPanelLazy = lazy(() => import("./components/DifferentialEquationSolverPanel"));
+const NormalCalculatorPanelLazy = lazy(() => import("../src/components/NormalCalculatorPanel"));
 import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
-
 
 // PUBLIC_INTERFACE
 /**
  * Root application component, overhauled for user friendliness, onboarding, and accessibility.
- * Includes new selector screens for Integral and Differential, as well as home and main computation.
+ * Includes calculator, selector screens for Integral and Differential, as well as home and main computation.
  */
 function App() {
   const [theme, setTheme] = useState("light");
-  const [homeMode, setHomeMode] = useState(null); // "integral", "differential", "limits", "linear-solver", "poly-roots"
+  const [homeMode, setHomeMode] = useState(null); // "calculator", "integral", "differential", "limits", "linear-solver", "poly-roots"
   const [integralSubOption, setIntegralSubOption] = useState(null); // "normal", "area", "volume"
   const [differentialSubOption, setDifferentialSubOption] = useState(null); // "normal", "tangent"
 
@@ -107,6 +108,28 @@ function App() {
       </div>
     );
   }
+
+  // --- NORMAL CALCULATOR PANEL ---
+  if (homeMode === "calculator") {
+    return (
+      <div className={`App bg-${theme} app-root`}>
+        <div className="content-surface">
+          <button
+            className="btn btn-outline-secondary theme-toggle"
+            style={{ position: "absolute", top: 16, right: 16, zIndex: 99 }}
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          >
+            {theme === "light" ? "🌙 Dark" : "☀️ Light"} Theme
+          </button>
+          <Suspense fallback={<div className="container p-4">Loading…</div>}>
+            <NormalCalculatorPanelLazy onBack={() => setHomeMode(null)} />
+          </Suspense>
+        </div>
+      </div>
+    );
+  }
+
   if (homeMode === "integral" && !integralSubOption) {
     return (
       <div className={`App bg-${theme} app-root`}>
@@ -197,7 +220,7 @@ function App() {
       </div>
     );
   }
-  const DifferentialEquationSolverPanelLazy = lazy(() => import("./components/DifferentialEquationSolverPanel"));
+  
   if (homeMode === "differential" && !differentialSubOption) {
     return (
       <div className={`App bg-${theme}`}>
@@ -483,8 +506,8 @@ function App() {
   const OP_ICONS = {
     limit: "🍀",
     integral: "∫",
-    differential: "ᴑ/ᴑᵥ",
-    trigonometric: "𝘃𝘢𝘭",
+    differential: "ᴇ/ᴇᵪ",
+    trigonometric: "𝓣𝓪𝓷",
   };
   const OP_DESCS = {
     limit: "Calculate the value a function approaches.",

@@ -92,13 +92,25 @@
 }
 .btn-math-green:hover { background: linear-gradient(180deg, #6ee7b7, #059669); color: #05261d; }
 
+/* Calculator button theme */
+.home-btn-calculator {
+  background: linear-gradient(180deg, #38bdf8, #0284c7) !important;
+  color: white !important;
+}
+
+.home-btn-calculator:hover {
+  background: linear-gradient(180deg, #7dd3fc, #0369a1) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
 /* Accessible focus ring for custom buttons that aren't .btn */
 .home-mode-btn:focus-visible {
   outline: 3px solid var(--btn-outline);
   outline-offset: 3px;
 }
 
-/* Elevated “compute” CTA */
+/* Elevated "compute" CTA */
 .btn-compute {
   background: linear-gradient(180deg, #10b981, #059669);
   color: #fff;
@@ -112,6 +124,23 @@
   background: linear-gradient(180deg, #9ca3af, #6b7280);
   color: #e5e7eb;
   cursor: not-allowed;
+}
+
+/* Calculator specific button styles */
+.btn-hover-light:hover {
+  background-color: #ced4da !important;
+}
+
+.btn-hover-primary:hover {
+  background-color: #0056b3 !important;
+}
+
+.btn-hover-danger:hover {
+  background-color: #c82333 !important;
+}
+
+.btn-hover-success:hover {
+  background-color: #218838 !important;
 }
 
 /* Subtle micro-interaction keyframes, reusable */

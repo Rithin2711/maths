@@ -5,12 +5,19 @@ import "./ButtonStyles.css";
 
 // PUBLIC_INTERFACE
 /**
- * HomePage for CalcMaster: lets user select Integral, Differential, or Limits mode.
+ * HomePage for CalcMaster: lets user select Calculator, Integral, Differential, or Limits mode.
  * This version includes a collage-friendly layout with a readable focus panel and subtle watermark accents.
- * @param {function} onSelectMode - Called with mode: "integral", "differential", or "limits"
+ * @param {function} onSelectMode - Called with mode: "calculator", "integral", "differential", or "limits"
  */
 function HomePage({ onSelectMode }) {
   const modes = [
+    {
+      key: "calculator",
+      label: "Normal Calculator",
+      desc: "Basic arithmetic operations calculator.",
+      icon: "🔢",
+      colorClass: "home-btn-calculator",
+    },
     {
       key: "integral",
       label: "Integral",
@@ -22,7 +29,7 @@ function HomePage({ onSelectMode }) {
       key: "differential",
       label: "Differential",
       desc: "Perform differentiation and solve derivatives.",
-      icon: "𝐑/𝐑ᵥ",
+      icon: "𝑑/𝑑ᵪ",
       colorClass: "home-btn-differential",
     },
     {
@@ -36,7 +43,7 @@ function HomePage({ onSelectMode }) {
       key: "linear-solver",
       label: "Solve Linear Equation (2-6 variables)",
       desc: "Solve Ax = b for 2 to 6 variables.",
-      icon: "A𝒙=b",
+      icon: "A𝑥=b",
       colorClass: "home-btn-linear",
     },
     {
