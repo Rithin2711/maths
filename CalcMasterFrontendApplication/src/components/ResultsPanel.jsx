@@ -10,6 +10,7 @@ import { BlockMath } from "react-katex";
  * no LaTeX code is displayed as plain text). For other operations, we preserve the existing
  * rendering with KaTeX and optionally a plain text block for accessibility.
  *
+ * PUBLIC_INTERFACE
  * Props:
  * @param {boolean} isValid - Whether the input expression is valid
  * @param {string} error - Error message if any
@@ -22,37 +23,39 @@ import { BlockMath } from "react-katex";
 function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }) {
   if (!isValid && !error) return null;
 
-  // Utility to ensure no "latex" or "latex*" labels are displayed to the user in plain text.
-  const stripLatexLabels = (s) => (s || "").replace(/latex\*?/gi, "").trim();
+  // Remove any literal occurrences of 'latex' or 'latex*' to avoid leaking helper labels
+  const stripLatexLabels = (s) => (s || "").replace(/\blatex\*?\b/gi, "").trim();
 
-  // Determine if we are rendering an integral result where only the final value should be shown.
   const isIntegral = (operation || "").toLowerCase() === "integral";
 
-  // For integrals: try to extract the numeric/evaluated right-hand side if an equality exists in resultLatex.
-  // e.g., "... = 0.5" -> show only "0.5" (rendered).
+  // For integrals, only show the final evaluated result (the RHS after '=' if present)
   let integralDisplayValue = "";
   if (isIntegral && !error) {
-    if (typeof resultLatex === "string" && resultLatex.includes("=")) {
+    if (typeof resultLatex === "string") {
       const eqMatch = resultLatex.match(/=(.*)$/s);
-      integralDisplayValue = stripLatexLabels(eqMatch ? eqMatch[1].trim() : "");
-    } else if (raw) {
-      // Fallback to raw if we don't have an equality in the LaTeX result.
-      // Ensure we strip any accidental "latex"/"latex*" labels in raw text.
+      if (eqMatch && eqMatch[1]) {
+        integralDisplayValue = stripLatexLabels(eqMatch[1]);
+      }
+    }
+    if (!integralDisplayValue && typeof raw === "string") {
       integralDisplayValue = stripLatexLabels(raw);
     }
   }
 
-  // Decide whether to show the general LaTeX result (for non-integral operations).
+  // Non-integral: show pretty KaTeX result if available
   const canShowGeneralLatex =
-    !isIntegral && !error && typeof resultLatex === "string" && resultLatex.trim().length > 0;
+    !isIntegral &&
+    !error &&
+    typeof resultLatex === "string" &&
+    stripLatexLabels(resultLatex).trim().length > 0;
 
-  // Decide whether to show the raw/plain block (for non-integral operations only, and hide any latex labels).
+  // Non-integral: allow a plain text block only if it doesn't contain 'latex' markers
   const canShowRaw =
     !isIntegral &&
     !error &&
     typeof raw === "string" &&
     raw.trim().length > 0 &&
-    !/\blatex\*?\b/i.test(raw);
+    /\blatex\*?\b/i.test(raw) === false;
 
   return (
     <div
@@ -83,27 +86,25 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
           </div>
         )}
 
-        {/* Integral: show ONLY the final value (formatted), hide LaTeX code and raw blocks */}
+        {/* Integral: render only the final value (KaTeX), never the entire LaTeX string or raw */}
         {!error && isIntegral && integralDisplayValue && (
           <div
             className="display-6 animate__animated animate__pulse"
             aria-label="Integral result"
             style={{ fontSize: "1.35rem" }}
           >
-            {/* Render the final value via MathJax (BlockMath) to present a clean mathematical form.
-               If it's a plain number (e.g., "0.5"), KaTeX will render it as-is without exposing code. */}
             <BlockMath>{integralDisplayValue}</BlockMath>
           </div>
         )}
 
-        {/* Non-integral: show the LaTeX-rendered full result as before */}
+        {/* Non-integral: render LaTeX result (with labels stripped) */}
         {canShowGeneralLatex && (
           <div className="display-6 animate__animated animate__pulse" aria-label="Math result">
             <BlockMath>{stripLatexLabels(resultLatex)}</BlockMath>
           </div>
         )}
 
-        {/* Non-integral: show a plain text snippet (but never if it contains 'latex' or 'latex*') */}
+        {/* Non-integral: accessible plain text snippet only when it is truly plain */}
         {canShowRaw && (
           <pre
             className="small mt-3 p-2 bg-light border rounded"
@@ -119,7 +120,7 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
           </pre>
         )}
 
-        {/* Empty state */}
+        {/* Empty state for non-integrals */}
         {!error && !isIntegral && !canShowGeneralLatex && !canShowRaw && (
           <div
             className="alert alert-info"
@@ -131,7 +132,7 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
           </div>
         )}
 
-        {/* For integrals: if there is no displayable value at all (edge case), show a friendly hint */}
+        {/* Edge case for integrals with nothing to display */}
         {!error && isIntegral && !integralDisplayValue && (
           <div
             className="alert alert-info"
@@ -150,7 +151,8 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
             <strong>Input:</strong> {inputExpr || <em>(none)</em>}
           </span>
           <span>
-            <strong>Operation:</strong> {operation ? operation.charAt(0).toUpperCase() + operation.slice(1) : "(unknown) "}
+            <strong>Operation:</strong>{" "}
+            {operation ? operation.charAt(0).toUpperCase() + operation.slice(1) : "(unknown) "}
           </span>
         </span>
       </div>
