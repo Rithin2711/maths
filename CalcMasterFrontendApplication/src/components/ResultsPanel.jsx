@@ -5,57 +5,75 @@ import { BlockMath } from "react-katex";
 
 /**
  * PUBLIC_INTERFACE
- * ResultsPanel renders calculation results using KaTeX while ensuring that, for integrals,
- * only the final numeric/evaluated value is shown (no raw 'latex' or 'latex*' labels, and
- * no LaTeX code is displayed as plain text). For other operations, we preserve the existing
- * rendering with KaTeX and optionally a plain text block for accessibility.
+ * ResultsPanel renders calculation results cleanly using KaTeX. It ensures:
+ * - No raw 'latex' or 'latex*' tokens/labels are shown.
+ * - If the evaluated result is numeric, it is rounded to 3 decimal points before display.
  *
  * PUBLIC_INTERFACE
  * Props:
  * @param {boolean} isValid - Whether the input expression is valid
  * @param {string} error - Error message if any
- * @param {string} resultLatex - The formatted (LaTeX) result string
+ * @param {string} resultLatex - Formatted LaTeX result string
  * @param {string} raw - Plain text result
- * @param {string} inputExpr - The original input expression
+ * @param {string} inputExpr - Original input expression
  * @param {string} operation - Operation type (e.g., 'integral', 'limit', etc.)
  */
 // PUBLIC_INTERFACE
 function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }) {
   if (!isValid && !error) return null;
 
-  // Remove any literal occurrences of 'latex' or 'latex*' to avoid leaking helper labels
+  // Strip any literal occurrences of 'latex' or 'latex*' to avoid helper labels showing
   const stripLatexLabels = (s) => (s || "").replace(/\blatex\*?\b/gi, "").trim();
+
+  // Helper: detect a numeric string and round to 3 decimals
+  const tryRoundNumeric = (s) => {
+    if (s == null) return "";
+    const trimmed = String(s).trim();
+    // Allow forms like "≈ 1.2345", "= 1.2345", or plain "1.2345"
+    const eqMatch = trimmed.match(/(?:=|≈)?\s*([+\-]?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/);
+    if (eqMatch && eqMatch[1] != null) {
+      const n = Number(eqMatch[1]);
+      if (!Number.isNaN(n) && Number.isFinite(n)) {
+        const rounded = Number(n.toFixed(3));
+        // Replace only the matched numeric portion with the rounded value (preserve prefix if any)
+        return trimmed.replace(eqMatch[1], String(rounded));
+      }
+    }
+    return trimmed;
+  };
 
   const isIntegral = (operation || "").toLowerCase() === "integral";
 
-  // For integrals, only show the final evaluated result (the RHS after '=' if present)
+  // Determine display strings with tokens stripped
+  const cleanedLatex = stripLatexLabels(resultLatex);
+  const cleanedRaw = stripLatexLabels(raw);
+
+  // For integrals, show only the final evaluated part (RHS after '=' if present)
   let integralDisplayValue = "";
-  if (isIntegral && !error) {
-    if (typeof resultLatex === "string") {
-      const eqMatch = resultLatex.match(/=(.*)$/s);
+  if (!error && isIntegral) {
+    if (typeof cleanedLatex === "string" && cleanedLatex.length > 0) {
+      const eqMatch = cleanedLatex.match(/=(.*)$/s);
       if (eqMatch && eqMatch[1]) {
-        integralDisplayValue = stripLatexLabels(eqMatch[1]);
+        integralDisplayValue = eqMatch[1].trim();
       }
     }
-    if (!integralDisplayValue && typeof raw === "string") {
-      integralDisplayValue = stripLatexLabels(raw);
+    if (!integralDisplayValue && typeof cleanedRaw === "string") {
+      integralDisplayValue = cleanedRaw;
     }
+    // Round numeric if applicable
+    integralDisplayValue = tryRoundNumeric(integralDisplayValue);
   }
 
-  // Non-integral: show pretty KaTeX result if available
+  // Non-integral display checks
   const canShowGeneralLatex =
-    !isIntegral &&
-    !error &&
-    typeof resultLatex === "string" &&
-    stripLatexLabels(resultLatex).trim().length > 0;
+    !isIntegral && !error && typeof cleanedLatex === "string" && cleanedLatex.trim().length > 0;
 
-  // Non-integral: allow a plain text block only if it doesn't contain 'latex' markers
   const canShowRaw =
-    !isIntegral &&
-    !error &&
-    typeof raw === "string" &&
-    raw.trim().length > 0 &&
-    /\blatex\*?\b/i.test(raw) === false;
+    !isIntegral && !error && typeof cleanedRaw === "string" && cleanedRaw.trim().length > 0;
+
+  // When showing general latex or raw, round numeric results embedded in them
+  const roundedLatex = canShowGeneralLatex ? tryRoundNumeric(cleanedLatex) : "";
+  const roundedRaw = canShowRaw ? tryRoundNumeric(cleanedRaw) : "";
 
   return (
     <div
@@ -86,7 +104,7 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
           </div>
         )}
 
-        {/* Integral: render only the final value (KaTeX), never the entire LaTeX string or raw */}
+        {/* Integral: render only the final value (KaTeX) */}
         {!error && isIntegral && integralDisplayValue && (
           <div
             className="display-6 animate__animated animate__pulse"
@@ -97,14 +115,14 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
           </div>
         )}
 
-        {/* Non-integral: render LaTeX result (with labels stripped) */}
+        {/* Non-integral: render LaTeX result (with tokens stripped and numeric rounded) */}
         {canShowGeneralLatex && (
           <div className="display-6 animate__animated animate__pulse" aria-label="Math result">
-            <BlockMath>{stripLatexLabels(resultLatex)}</BlockMath>
+            <BlockMath>{roundedLatex}</BlockMath>
           </div>
         )}
 
-        {/* Non-integral: accessible plain text snippet only when it is truly plain */}
+        {/* Non-integral: accessible plain text snippet (tokens stripped and numeric rounded) */}
         {canShowRaw && (
           <pre
             className="small mt-3 p-2 bg-light border rounded"
@@ -116,7 +134,7 @@ function ResultsPanel({ isValid, error, resultLatex, raw, inputExpr, operation }
               borderRadius: 9,
             }}
           >
-            <code>{stripLatexLabels(raw)}</code>
+            <code>{roundedRaw}</code>
           </pre>
         )}
 
