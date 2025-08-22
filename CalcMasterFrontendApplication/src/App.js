@@ -527,7 +527,7 @@ function App() {
   return (
     <div className={`App bg-${theme} app-root`} data-testid="main-app-container">
       <div className="content-surface">
-      <header className="container py-3 position-relative">
+      <header className="container py-2 position-relative">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h1 className="mb-0 visually-hidden">
             CalcMaster: Advanced Math Web Calculator
