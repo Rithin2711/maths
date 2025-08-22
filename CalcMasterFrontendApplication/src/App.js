@@ -1,11 +1,20 @@
 import React, { useState, lazy, Suspense } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+
+// Styles
 import "./App.css";
+import "./components/ButtonStyles.css";
+
+// Direct component imports
 import MathInputPanel from "./components/MathInputPanel";
 import OperationSelector from "./components/OperationSelector";
 import ValidationFeedback from "./components/ValidationFeedback";
 import ResultsPanel from "./components/ResultsPanel";
-import "./components/ButtonStyles.css";
+
+// Utility imports
+import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
+
+// Lazy-loaded components
 const HomePageLazy = lazy(() => import("./components/HomePage"));
 const IntegralOptionsPageLazy = lazy(() => import("./components/IntegralOptionsPage"));
 const DifferentialOptionsPageLazy = lazy(() => import("./components/DifferentialOptionsPage"));
@@ -21,8 +30,7 @@ const LimitPanelLazy = lazy(() => import("./components/LimitPanel"));
 const LinearEquationSolverPanelLazy = lazy(() => import("./components/LinearEquationSolverPanel"));
 const PolynomialRootsPanelLazy = lazy(() => import("./components/PolynomialRootsPanel"));
 const DifferentialEquationSolverPanelLazy = lazy(() => import("./components/DifferentialEquationSolverPanel"));
-const NormalCalculatorPanelLazy = lazy(() => import("../src/components/NormalCalculatorPanel"));
-import { calculateMathExpression, validateMathExpression } from "./math/mathEngine";
+const NormalCalculatorPanelLazy = lazy(() => import("./components/NormalCalculatorPanel"));
 
 // PUBLIC_INTERFACE
 /**
@@ -506,7 +514,7 @@ function App() {
   const OP_ICONS = {
     limit: "🍀",
     integral: "∫",
-    differential: "ᴇ/ᴇᵪ",
+    differential: "ᴇ/ᴇₓ",
     trigonometric: "𝓣𝓪𝓷",
   };
   const OP_DESCS = {
